@@ -72,7 +72,7 @@ for (i = 0; i < cellCount; i++) {
     cell.style.height = `${100 / rows}%`;
     cell.style.width = `${100 / cols}%`;
     cell.dataset.index = i;
-    cell.innerText = i;
+    //cell.innerText = i;
 
     container.append(cell);
 
@@ -254,13 +254,14 @@ document.addEventListener('keydown', handleKeyDown);
 
 
 pacmanMove(3);
-blinky.chase();
+blinky.chase(1);
 
 
-function blinkyChase() {
-    let direction = 1;
+// callback function for blinky.chase
+function blinkyChase(direction) {
     let prevCell = blinky.currentCell;
-    let hadFood = true;
+    // keep track of whether there was food or powerups in previous cell, to replace them
+    let hadFood = false;
     let hadPowerUp = false;
     // Move - starting direction right (1)
     let interval = setInterval(() => {
@@ -268,6 +269,7 @@ function blinkyChase() {
         let nextCell = findNextCell(direction, blinky.currentCell);
 
         if (isValidCell(nextCell)) {
+            // replace food and power ups after blinky passed through
             if (hadFood) {
                 cells[prevCell].classList.add('food');
                 hadFood = false;
@@ -292,7 +294,32 @@ function blinkyChase() {
             cells[nextCell].classList.add(blinky.cssClass);
             blinky.currentCell = nextCell;
 
+        } else {
+            handleCorners(direction, blinky, interval);
         }
     }, blinky.speed);
 
 };
+
+// Turns ghosts on corners with no choice
+function handleCorners(direction, ghost, interval) {
+    // if direction is up or down, try left, else right
+    if (direction === 0 || direction === 2) {
+        direction = 1
+        let nextCell = findNextCell(direction, ghost.currentCell);
+        if (!isValidCell(nextCell)) {
+            direction = 3;
+        };
+    }
+    // if direction is left or right, try down, else up
+    else {
+        direction = 2;
+        let nextCell = findNextCell(direction, ghost.currentCell)
+        if (!isValidCell(nextCell)) {
+            direction = 0;
+        };
+    }
+    // clear interval and start chase again
+    clearInterval(interval);
+    ghost.chase(direction);
+}
