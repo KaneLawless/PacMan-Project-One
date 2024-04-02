@@ -1,0 +1,54 @@
+* {
+    box-sizing: border-box;
+}
+
+.container {
+    width: 599.94px;
+    height: 599.94px;
+    margin: 2.5rem auto;
+    display: flex;
+    flex-wrap: wrap
+}
+
+.pacman-left {
+    background-image: url("../images/pacman-left.gif");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.pacman-right {
+    background-image: url("../images/pacman-right.gif");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.pacman-up {
+    background-image: url("../images/pacman-up.gif");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.pacman-down {
+    background-image: url("../images/pacman-down.gif");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.food {
+    background-image: url("../images/dot.png");
+    background-repeat: no-repeat;
+    background-size: 20%;
+    background-position: center;
+}
+
+.power-up {
+    background-image: url("../images/power-up.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.blinky {
+    background-image: url("../images/blinky.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+}

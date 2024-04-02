@@ -1,0 +1,117 @@
+// Pacman Game
+// An 18x18 grid container which represents the board/game
+// We have a pacman character who moves constantly in one direction
+// The user can change pacmans direction with the arrow keys
+// The aim is to pass through every cell with food in it without colliding with a ghost in the same cell
+// The ghosts 'chase' pacman with varying personalities, aiming to collide
+// Some cells contain a power up which changes the game state to "frightented"
+// When the ghosts are frightened they run away from pacman and a secondary aim is now to purposefully collide
+// If collision occurs in frightened mode, the ghosts return to the home area
+// If all the food is collected successfully without colliding, player wins the round.
+// There is a combination of inaccessible and accessible cells
+
+
+// Elements
+
+// Score
+// Board
+
+
+
+// Variables and Constants
+
+// columns and rows
+// Pacman starting and current position
+// Starting and current position of each ghost
+// Score
+// Speeds of pacman and ghosts
+// gameState
+// State timers
+// cells array
+// invalid and valid cells array, home cells array, power-up array
+// intervals
+
+
+// Executions
+
+// Main Game function
+// - function: Should render the game board, place pacman and ghosts in starting positions by adding classes to cells and 
+//      should place the food and power ups in cells
+// - function: Interval for moving pacman in a direction constantly
+//     - finds the next cell
+//     - disallow moving to invalid cells
+//     - helper function for changing the image so pacman is always looking the correct direction
+// - function: Interval for moving ghosts 
+// - Should remove food that has been eaten and add score
+// - Should change game state when power-ups have been eaten
+//    - function: This changes ghost behaviour and colour 
+
+// renderGame / Set up function
+
+// pacmanMovement(direction) function
+// - moves pacman from cell to cell in one direction (events will change direction)
+// - stops movement if confronted by an invalid cell
+// - handles cell collision - ends game
+
+// Ghost movements -> first understanding, more complex logic to be added and considered
+// ---Shared logic---
+// - ghosts move at the same speed and slower than pacman
+// - Each have a target tile to reach, which will dynamically change based on pacman's current tile
+// - Decisions to be calculated when turns are reached, otherwise they travel straight
+// -  Ghosts dont turn around except for in frightened mode they always turn first
+// - In frightened mode they run away from pacman and choose psuedorandomly which turns to take
+// - Scatter mode they head towards predetermined tiles
+// - handle collisions
+//    - if two classes in one cell
+//    - if ghosts, choose one? 
+//    - if pacman and ghosts, end game or send ghost back to home
+
+
+//  - SEARCH ALGO -> shortest path to target 
+
+// - Blinky (red)
+// - starts outside of home 
+// - target cell is always pacman's current position
+// - speed increases slightly at intervals -> at same interval, scatter behaviour changes and target tile is still pacman
+
+// - Pinky 
+// - target cell is 4 ahead of pacman
+// - to consider: What happens when they are within 4 cells of eachother??
+// - leaves home immediately when game starts
+
+// - Inky (blue)
+// - target calculate based on the current direction of pacman and the positioning of blinky
+// - vector between blinky and 2 squares in front of pacman, doubled
+// - leaves home after x amount of food eaten
+// - I might simplify this
+
+// - clyde (orange)
+// - last to leave home (predetermined)
+// - if > 8 tiles away from pacman, use blinky's moveement
+// - else tends towards a specific square
+
+
+// changeState
+// - frightened:
+// - changes ghost behaviour and colour
+// - collision is beneficial for pacman now and ghosts return to home if eaten
+// - Scatter: Ghosts reverse direction and travel towards 
+
+
+//  STATES
+// frighten()
+// - ghosts reverse direction and take turns psuedorandomly
+
+// scatter()
+// -  ghosts take shortest path toward preterminded squares
+
+
+// endGame
+// - ends game when all food is eaten or pacman collides with ghost outside of frightened mode
+
+
+// Events
+
+// Keys pressed down
+// changes pacman direction
+
