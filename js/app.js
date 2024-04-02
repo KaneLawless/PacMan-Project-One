@@ -29,6 +29,40 @@ const pacmanSpeed = 200;
 const blinkySpeed = 300;
 const blinkyStart = 109;
 
+// Ghost class for storing variables and chase, frightened and scatter movement methods
+class Ghost {
+    constructor(name, speed, startingCell, chase, cssClass, scatterCell) {
+        this.name = name;
+        this.speed = speed;
+        this.startingCell = startingCell;
+        this.chase = chase;
+        this.cssClass = cssClass;
+        this.scatterCell = scatterCell;
+        this.currentCell = startingCell;
+
+    }
+
+    frightened() {
+
+    }
+
+    scatter(scatterCell) {
+
+    }
+}
+
+// Chase object for storing individual movement mechanics during chase mode 
+const Chase = {
+    blinky: () => { },
+    inky: () => { },
+    pinky: () => { },
+    clyde: () => { }
+};
+
+// Blinky object
+const blinky = new Ghost('blinky', 300, 109, Chase.blinky, '.blinky', 16)
+
+
 
 // Create grid
 for (i = 0; i < cellCount; i++) {
@@ -38,7 +72,7 @@ for (i = 0; i < cellCount; i++) {
     cell.style.height = `${100 / rows}%`;
     cell.style.width = `${100 / cols}%`;
     cell.dataset.index = i;
-    // cell.innerText = i; **for testing**
+    cell.innerText = i;
 
     container.append(cell);
 
