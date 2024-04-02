@@ -28,6 +28,10 @@ let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
 const blinkyStart = 109;
+const blinkyScatterCell = 16;
+let hadFood = true;
+let hadPowerUp = false;
+
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
@@ -60,7 +64,7 @@ const Chase = {
 };
 
 // Blinky object
-const blinky = new Ghost('blinky', 300, 109, Chase.blinky, 'blinky', 16)
+const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell)
 
 
 
@@ -257,12 +261,11 @@ pacmanMove(3);
 blinky.chase(1);
 
 
+
 // callback function for blinky.chase
 function blinkyChase(direction) {
     let prevCell = blinky.currentCell;
     // keep track of whether there was food or powerups in previous cell, to replace them
-    let hadFood = false;
-    let hadPowerUp = false;
     // Move - starting direction right (1)
     let interval = setInterval(() => {
         prevCell = blinky.currentCell;
@@ -296,6 +299,7 @@ function blinkyChase(direction) {
 
         } else {
             handleCorners(direction, blinky, interval);
+
         }
     }, blinky.speed);
 
@@ -303,6 +307,7 @@ function blinkyChase(direction) {
 
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost, interval) {
+
     // if direction is up or down, try left, else right
     if (direction === 0 || direction === 2) {
         direction = 1
@@ -320,6 +325,7 @@ function handleCorners(direction, ghost, interval) {
         };
     }
     // clear interval and start chase again
+
     clearInterval(interval);
     ghost.chase(direction);
 }
