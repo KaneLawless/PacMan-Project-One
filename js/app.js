@@ -53,14 +53,14 @@ class Ghost {
 
 // Chase object for storing individual movement mechanics during chase mode 
 const Chase = {
-    blinky: () => { },
+    blinky: blinkyChase,
     inky: () => { },
     pinky: () => { },
     clyde: () => { }
 };
 
 // Blinky object
-const blinky = new Ghost('blinky', 300, 109, Chase.blinky, '.blinky', 16)
+const blinky = new Ghost('blinky', 300, 109, Chase.blinky, 'blinky', 16)
 
 
 
@@ -108,7 +108,7 @@ for (i = 0; i < cellCount; i++) {
     cells.push(cell);
 }
 
-console.log(cells)
+//console.log(cells)
 
 // Moves pacman in current direction
 function pacmanMove(direction) {
@@ -117,7 +117,7 @@ function pacmanMove(direction) {
     // Moves pacman at {pacmanSpeed} speed
     interval = setInterval(() => {
         // Finds the next cell to move to
-        let nextCell = findNextCell(direction);
+        let nextCell = findNextCell(direction, currentPacmanCell);
         console.log(nextCell)
         // Ensures next cell is valid to enter
         if (isValidCell(nextCell)) {
@@ -154,33 +154,33 @@ function isValidCell(cell) {
 
 
 // Calculates next cell based on current direction
-function findNextCell(direction) {
+function findNextCell(direction, currentCell) {
     let nextCell;
-    console.log("current cell: " + currentPacmanCell)
+    console.log("current cell: " + currentCell)
 
     // Left
     if (direction === 3) {
-        if (currentPacmanCell === 144) {
+        if (currentCell === 144) {
             nextCell = 161;
         } else {
-            nextCell = currentPacmanCell - 1;
+            nextCell = currentCell - 1;
         }
     }
     // Down
     else if (direction === 2) {
-        nextCell = currentPacmanCell + 18;
+        nextCell = currentCell + 18;
     }
     // Right 
     else if (direction === 1) {
-        if (currentPacmanCell === 161) {
+        if (currentCell === 161) {
             nextCell = 144;
         } else {
-            nextCell = currentPacmanCell + 1;
+            nextCell = currentCell + 1;
         }
     }
     // Up
     else if (direction === 0) {
-        nextCell = currentPacmanCell - 18;
+        nextCell = currentCell - 18;
     }
     // Error
     else {
@@ -233,7 +233,7 @@ function handleKeyDown(e) {
     }
 
     // Find next Cell
-    const nextCell = findNextCell(direction)
+    const nextCell = findNextCell(direction, currentPacmanCell)
     if (!isValidCell(nextCell)) {
         return
     }
@@ -254,3 +254,45 @@ document.addEventListener('keydown', handleKeyDown);
 
 
 pacmanMove(3);
+blinky.chase();
+
+
+function blinkyChase() {
+    let direction = 1;
+    let prevCell = blinky.currentCell;
+    let hadFood = true;
+    let hadPowerUp = false;
+    // Move - starting direction right (1)
+    let interval = setInterval(() => {
+        prevCell = blinky.currentCell;
+        let nextCell = findNextCell(direction, blinky.currentCell);
+
+        if (isValidCell(nextCell)) {
+            if (hadFood) {
+                cells[prevCell].classList.add('food');
+                hadFood = false;
+            }
+
+            if (hadPowerUp) {
+                cells[prevCell].classList.add('power-up');
+                hadPowerUp = false;
+            }
+
+            cells[blinky.currentCell].classList.remove(blinky.cssClass);
+
+            if (cells[nextCell].classList.contains('food')) {
+                cells[nextCell].classList.remove('food');
+                hadFood = true;
+            } else if (cells[nextCell].classList.contains('power-up')) {
+                cells[nextCell].classList.remove('power-up');
+                hadPowerUp = true;
+                prevCell = blinky.currentCell;
+            }
+
+            cells[nextCell].classList.add(blinky.cssClass);
+            blinky.currentCell = nextCell;
+
+        }
+    }, blinky.speed);
+
+};
