@@ -41,12 +41,43 @@ class Node {
         this.connectedNodes = connectedNodes;
         this.index = index;
     }
-    hDist; // euclid distance from target
 
 }
 
 const nodes = {} // array containing the Node objects
 const nodes2 = {}
+
+nodes.n19 = new Node(19, { n25: 0, n73: 0 });
+nodes.n25 = new Node(25, { n19: 0, n79: 0 });
+nodes.n28 = new Node(28, { n34: 0, n82: 0 });
+nodes.n34 = new Node(34, { n28: 0, n88: 0 });
+nodes.n73 = new Node(73, { n19: 0, n79: 0, n109: 0 });
+nodes.n79 = new Node(79, { n25: 0, n73: 0, n82: 0 });
+nodes.n82 = new Node(82, { n28: 0, n79: 0, n88: 0 });
+nodes.n88 = new Node(88, { n34: 0, n82: 0, n124: 0 });
+nodes.n109 = new Node(109, { n73: 0, n113: 0 });
+nodes.n113 = new Node(113, { n109: 0, n149: 0 });
+nodes.n120 = new Node(120, { n124: 0, n156: 0 });
+nodes.n124 = new Node(124, { n88: 0, n120: 0 });
+nodes.n149 = new Node(149, { n113: 0, n156: 0, n203: 0 });
+nodes.n156 = new Node(156, { n120: 0, n149: 0, n210: 0 });
+nodes.n199 = new Node(199, { n203: 0, n253: 0 });
+nodes.n203 = new Node(203, { n149: 0, n199: 0, n205: 0 });
+nodes.n205 = new Node(205, { n203: 0, n241: 0 });
+nodes.n208 = new Node(208, { n210: 0, n244: 0 });
+nodes.n210 = new Node(210, { n156: 0, n208: 0, n214: 0, n264: 0 });
+nodes.n214 = new Node(214, { n210: 0, n268: 0 });
+nodes.n241 = new Node(241, { n205: 0, n244: 0 });
+nodes.n244 = new Node(244, { n208: 0, n241: 0 });
+nodes.n253 = new Node(253, { n199: 0, n257: 0, n289: 0 });
+nodes.n257 = new Node(257, { n203: 0, n253: 0 });
+nodes.n264 = new Node(264, { n210: 0, n268: 0 });
+nodes.n268 = new Node(268, { n214: 0, n264: 0, n304: 0 });
+nodes.n289 = new Node(289, { n253: 0, n304: 0 });
+nodes.n304 = new Node(304, { n268: 0, n289: 0 });
+
+
+
 // // Nodes g(n) distance is stored in connected notes object as a key:value pair of node name: distance
 nodes2.n73 = new Node(73, { n79: 6, n149: 8 });
 nodes2.n79 = new Node(79, { n73: 6, n82: 3 });
@@ -96,69 +127,84 @@ const Chase = {
 const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell)
 
 
+function setUp() {
+    // Create grid
+    for (i = 0; i < cellCount; i++) {
 
-// Create grid
-for (i = 0; i < cellCount; i++) {
+        // Create and append all cells
+        const cell = document.createElement('div');
+        cell.style.height = `${100 / rows}%`;
+        cell.style.width = `${100 / cols}%`;
+        // if (decisionCells.includes(i)) {
+        //     cell.innerText = i;
+        // }
 
-    // Create and append all cells
-    const cell = document.createElement('div');
-    cell.style.height = `${100 / rows}%`;
-    cell.style.width = `${100 / cols}%`;
-    // if (decisionCells.includes(i)) {
-    //     cell.innerText = i;
-    // }
+        cell.dataset.index = i;
+        cell.dataset.col = i % cols;
+        cell.dataset.row = Math.floor(i / cols);
 
-    cell.dataset.index = i;
-    cell.dataset.col = i % cols;
-    cell.dataset.row = Math.floor(i / cols);
+        cell.innerText = i;
 
-    cell.innerText = i;
-
-    container.append(cell);
+        container.append(cell);
 
 
-    if (!invalidCells.includes(i)) {
-        // Ignore home cells and invalid cells, add food
-        if (!homeCells.includes(i)) {
-            validCells.push(i);
-            if (!powerUpCells.includes(i) && i !== blinkyStart) {
-                cell.classList.add("food");
+        if (!invalidCells.includes(i)) {
+            // Ignore home cells and invalid cells, add food
+            if (!homeCells.includes(i)) {
+                validCells.push(i);
+                if (!powerUpCells.includes(i) && i !== blinkyStart) {
+                    cell.classList.add("food");
+                }
             }
+        } // Style invalid cells 
+        else {
+            cell.style.backgroundColor = "grey";
+            cell.style.border = "1px solid black";
         }
-    } // Style invalid cells 
-    else {
-        cell.style.backgroundColor = "grey";
-        cell.style.border = "1px solid black";
+
+        // Add power ups to designated cells
+        if (powerUpCells.includes(i)) {
+            cell.classList.add('power-up');
+        }
+        // Place pacman to start
+        if (i === startingCell) {
+            cell.classList.remove('food');
+            cell.classList.add('pacman-left');
+        };
+
+        if (i === blinkyStart) {
+            cell.classList.add('blinky');;
+        }
+        // Create array of all cells
+        cells.push(cell);
     }
 
-    // Add power ups to designated cells
-    if (powerUpCells.includes(i)) {
-        cell.classList.add('power-up');
-    }
-    // Place pacman to start
-    if (i === startingCell) {
-        cell.classList.remove('food');
-        cell.classList.add('pacman-left');
-    };
 
-    if (i === blinkyStart) {
-        cell.classList.add('blinky');;
+    // calc direction between nodes.
+    // console.log(nodes)
+    for (i = 0; i < Object.keys(nodes).length; i++) {
+        const nodeId = Object.keys(nodes)[i]
+        const index = nodes[nodeId].index;
+
+        const connects = nodes[nodeId].connectedNodes;
+        for (j = 0; j < Object.keys(connects).length; j++) {
+            const cellId = Object.keys(connects)[j]
+            const cell = nodes[cellId].index;
+
+            let distance;
+            if (cells[index].dataset.row === cells[cell].dataset.row) {
+                distance = Math.abs(index - cell);
+            } else {
+                distance = Math.abs((index - cell) / cols);
+            }
+
+            nodes[nodeId][cellId] = distance;
+        }
     }
-    // Create array of all cells
-    cells.push(cell);
+
+    console.log(nodes)
+
 }
-
-
-
-decisionCells.forEach(item => {
-    const connects = [item - 1, item + 1, item + 18, item - 18];
-    const filtered = connects.filter(i => validCells.includes(i));
-
-    const node = new Node(item, filtered);
-    nodes[`n${item}`] = node;
-})
-
-
 
 // Moves pacman in current direction
 function pacmanMove(direction) {
@@ -320,10 +366,10 @@ function blinkyChase(direction) {
             // console.log("PACMAN CELL: " + currentPacmanCell)
             const target = calcTargetCell(blinky);
             const bestNode = astar(`n${index}`, target)
-            // console.log(`Index Col: ${cells[index].dataset.col}`)
-            // console.log(`BestNode Col: ${cells[bestNode].dataset.col}`)
-            // console.log(`Index Row: ${cells[index].dataset.row}`)
-            // console.log(`bestNode Col: ${cells[bestNode].dataset.row}`)
+            // console.log(`Index Col: ${ cells[index].dataset.col }`)
+            // console.log(`BestNode Col: ${ cells[bestNode].dataset.col }`)
+            // console.log(`Index Row: ${ cells[index].dataset.row }`)
+            // console.log(`bestNode Col: ${ cells[bestNode].dataset.row }`)
             if (cells[index].dataset.col === cells[bestNode].dataset.col) {
 
                 if (cells[index].dataset.row > cells[bestNode].dataset.row) {
@@ -442,7 +488,7 @@ function calcTargetCell(ghost) {
 function astar(node, target) {
     let fnVals = {} // obj of h(n) values for each node to target 
     const cNodes = nodes2[node].connectedNodes; // object of nodes:distances
-    console.log(`Possible Nodes:`);
+    console.log(`Possible Nodes: `);
     console.log(cNodes)
     for (i = 0; i < Object.keys(cNodes).length; i++) {
         const connNode = Object.keys(cNodes)[i] // node name
@@ -459,45 +505,6 @@ function astar(node, target) {
     return lowest[0]; // Node to go towards
 }
 
-function newAStar(ghost, index, target) {
-    let fnVals = {};
-    const nodeName = `n${index}`;
-    const cNodes = nodes[nodeName].connectedNodes;
-
-    // Disallow reversing direction and handle edge case cells
-    if (ghost.direction === 0) {
-        cNodes.filter(item => item === (index + 18));
-    } else if (ghost.direction === 1) {
-        if (index === 144) {
-            cNodes.filter(item => item === 161)
-        }
-        cNodes.filter(item => item === (index - 1))
-    } else if (ghost.direction === 2) {
-        cNodes.filter(item => (index - 18))
-    } else if (ghost.direction === 3) {
-        if (index === 161) {
-            cNodes.filter(item => item === 144)
-        }
-        cNodes.filter(item => item === (index + 1))
-    }
-    // iterate through possible nodes and calc f(n). g(n) = 1 for all because its each node is one cell apart
-    for (i = 0; i < cNodes.length; i++) {
-        const node = cNodes[i];
-        const hN = calcHeuristicVal(node, target);
-        const gN = 1;
-        const fN = hN + gN;
-
-        fnVals[node] = fN;
-    }
-
-    let entries = Object.entries(fnVals);
-    let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
-    console.log("F(N) VALUES: " + entries)
-    console.log("BEST NODE: " + lowest[0], "f(n) Value: " + lowest[1]);
-
-    return lowest[0]; // Node to go towards
-
-}
 
 
 // Calc Euclidian distance between ghost and pacman
@@ -524,7 +531,7 @@ function calcHeuristicVal(node, target) {
 }
 
 
-
+setUp()
 pacmanMove(3);
 blinky.chase(1);
 
