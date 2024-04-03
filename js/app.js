@@ -304,7 +304,12 @@ function blinkyChase(direction) {
     let interval = setInterval(() => {
         console.log(calcHeuristicVal(blinky));
         prevCell = blinky.currentCell;
-        let nextCell = findNextCell(direction, blinky.currentCell);
+        let nextCell;
+        if (decisionCells.includes(blinky.currentCell)) {
+            const target = calcTargetCell(blinky);
+            
+        }
+        nextCell = findNextCell(direction, blinky.currentCell);
 
         if (isValidCell(nextCell)) {
             // replace food and power ups after blinky passed through
@@ -334,7 +339,6 @@ function blinkyChase(direction) {
 
         } else {
             handleCorners(direction, blinky, interval);
-
         }
     }, blinky.speed);
 
@@ -386,30 +390,46 @@ function calcTargetCell(ghost) {
     if (ghost === blinky) {
         targetCell = currentPacmanCell;
     }
+
+    return targetCell;
 }
 
-function astar() {
+function astar(node, target) {
+    let fNVals = {} // obj of h(n) values for each node to target 
+    const cNodes = node.connectedNodes; // object of nodes:distances
+    for (i = 0; i < Object.keys(cNodes).length; i++) {
+        const connNode = Object.keys(cNodes)[i] // node name
+        const index = nodes[connNode].index; // 'i'th node in connected nodes list, get index
+        const hN = calcHeuristicVal(index, target);   // h(n) of node to target
+        const gN = cNodes[connNode]; //distance
+        const fN = hN + gN;
+        fNVals[connNode] = fN
+    }
 
+    let entries = Object.entries(fnVals);
+    let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
+
+    return lowest[0]; // Node to go towards
 }
 
 // Calc Euclidian distance between ghost and pacman
-function calcHeuristicVal(ghost) {
+function calcHeuristicVal(node, target) {
 
-    let position = cells[currentPacmanCell].dataset.col - cells[ghost.currentCell].dataset.col;
+    let position = cells[target].dataset.col - cells[node].dataset.col;
     console.log(position)
     let vert;
-    // If pacman is to the left of the ghost we need to ceil the vert distance, otherwise floor
+    // If target is to the left of the node we need to ceil the vert distance, otherwise floor
     if (position >= 0) {
-        vert = Math.floor((currentPacmanCell - ghost.currentCell) / rows);
+        vert = Math.floor((target - node) / rows);
     } else {
 
-        vert = Math.ceil((currentPacmanCell - ghost.currentCell) / rows);
+        vert = Math.ceil((target - node) / rows);
     }
     console.log("VERT: " + vert)
     // Calc the cell in pacman's row and ghost's column
-    let cellInRow = ghost.currentCell + (rows * vert);
+    let cellInRow = node + (rows * vert);
     console.log("CEll in row: " + cellInRow);
-    let horiz = currentPacmanCell - cellInRow;
+    let horiz = target - cellInRow;
     console.log("HORIZ: " + horiz)
 
     let h2 = vert ** 2 + horiz ** 2;
@@ -417,9 +437,6 @@ function calcHeuristicVal(ghost) {
 }
 
 
-function calcCost() {
-
-}
 
 
 
