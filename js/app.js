@@ -261,7 +261,7 @@ document.addEventListener('keydown', handleKeyDown);
 
 
 pacmanMove(3);
-//blinky.chase(1);
+blinky.chase(1);
 
 
 
@@ -311,21 +311,36 @@ function blinkyChase(direction) {
 
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost, interval) {
-
+    let randNum = Math.floor(Math.random() * 4);
     // if direction is up or down, try left, else right
     if (direction === 0 || direction === 2) {
-        direction = 1
+
+        while (randNum === 0 || randNum === 2) {
+            randNum = Math.floor(Math.random() * 4);
+        }
+        direction = randNum;
         let nextCell = findNextCell(direction, ghost.currentCell);
         if (!isValidCell(nextCell)) {
-            direction = 3;
+            if (direction === 3) {
+                direction = 1;
+            } else {
+                direction = 3;
+            }
         };
     }
     // if direction is left or right, try down, else up
     else {
-        direction = 2;
+        while (randNum === 1 || randNum === 3) {
+            randNum = Math.floor(Math.random() * 4);
+        }
+        direction = randNum;
         let nextCell = findNextCell(direction, ghost.currentCell)
         if (!isValidCell(nextCell)) {
-            direction = 0;
+            if (direction === 2) {
+                direction = 0;
+            } else {
+                direction = 2;
+            }
         };
     }
     // clear interval and start chase again
