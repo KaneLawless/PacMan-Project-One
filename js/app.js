@@ -27,7 +27,7 @@ let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 109;
+const blinkyStart = 149;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -76,7 +76,8 @@ for (i = 0; i < cellCount; i++) {
     cell.style.height = `${100 / rows}%`;
     cell.style.width = `${100 / cols}%`;
     cell.dataset.index = i;
-    //cell.innerText = i;
+    cell.dataset.col = i % cols === 0 ? 1 : i % cols;
+    cell.innerText = i;
 
     container.append(cell);
 
@@ -120,9 +121,11 @@ function pacmanMove(direction) {
     const relevantClass = findDirectionClass(direction);
     // Moves pacman at {pacmanSpeed} speed
     interval = setInterval(() => {
+        console.log(`Current Cell: ${currentPacmanCell} + Blinky Cell: ${blinky.currentCell} + Heuristic: ${calcHeuristicVal(blinky)}`);
+
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
-        console.log(nextCell)
+        //console.log(nextCell)
         // Ensures next cell is valid to enter
         if (isValidCell(nextCell)) {
             // Deletes pacman from cell when leaving
@@ -160,7 +163,7 @@ function isValidCell(cell) {
 // Calculates next cell based on current direction
 function findNextCell(direction, currentCell) {
     let nextCell;
-    console.log("current cell: " + currentCell)
+    //console.log("current cell: " + currentCell)
 
     // Left
     if (direction === 3) {
@@ -192,7 +195,7 @@ function findNextCell(direction, currentCell) {
         console.log("Error in cell calculation");
 
     }
-    console.log("NEXT: " + nextCell)
+    //console.log("NEXT: " + nextCell)
     return nextCell;
 }
 
@@ -258,7 +261,7 @@ document.addEventListener('keydown', handleKeyDown);
 
 
 pacmanMove(3);
-blinky.chase(1);
+//blinky.chase(1);
 
 
 
@@ -268,6 +271,7 @@ function blinkyChase(direction) {
     // keep track of whether there was food or powerups in previous cell, to replace them
     // Move - starting direction right (1)
     let interval = setInterval(() => {
+        console.log(calcHeuristicVal(blinky));
         prevCell = blinky.currentCell;
         let nextCell = findNextCell(direction, blinky.currentCell);
 
@@ -329,3 +333,41 @@ function handleCorners(direction, ghost, interval) {
     clearInterval(interval);
     ghost.chase(direction);
 }
+
+// Calc ghost target cell
+function calcTargetCell(ghost) {
+    let targetCell;
+    if (ghost === blinky) {
+        targetCell = currentPacmanCell;
+    }
+}
+
+function astar() {
+
+}
+
+// Calc Euclidian distance between ghost and pacman
+function calcHeuristicVal(ghost) {
+
+    let position = cells[currentPacmanCell].dataset.col - cells[ghost.currentCell].dataset.col;
+    console.log(position)
+    let vert;
+    // If pacman is to the left of the ghost we need to ceil the vert distance, otherwise floor
+    if (position >= 0) {
+        vert = Math.floor((currentPacmanCell - ghost.currentCell) / rows);
+    } else {
+
+        vert = Math.ceil((currentPacmanCell - ghost.currentCell) / rows);
+    }
+    console.log("VERT: " + vert)
+    // Calc the cell in pacman's row and ghost's column
+    let cellInRow = ghost.currentCell + (rows * vert);
+    console.log("CEll in row: " + cellInRow);
+    let horiz = currentPacmanCell - cellInRow;
+    console.log("HORIZ: " + horiz)
+
+    let h2 = vert ** 2 + horiz ** 2;
+    return Math.sqrt(h2);
+}
+
+
