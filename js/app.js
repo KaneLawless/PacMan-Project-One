@@ -24,13 +24,13 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-const startingCell = 205;
+const startingCell = 199;
 let interval;
 let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 149;
+const blinkyStart = 124;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -46,20 +46,21 @@ class Node {
 }
 
 const nodes = {} // array containing the Node objects
+const nodes2 = {}
+// // Nodes g(n) distance is stored in connected notes object as a key:value pair of node name: distance
+nodes2.n73 = new Node(73, { n79: 6, n149: 8 });
+nodes2.n79 = new Node(79, { n73: 6, n82: 3 });
+nodes2.n82 = new Node(82, { n79: 3, n88: 6 });
+nodes2.n88 = new Node(88, { n82: 6, n156: 8 });
+nodes2.n149 = new Node(149, { n73: 8, n156: 11, n203: 3 });
+nodes2.n156 = new Node(156, { n88: 8, n149: 11, n210: 3 });
+nodes2.n203 = new Node(203, { n149: 3, n210: 7, n253: 7 });
+nodes2.n210 = new Node(210, { n156: 3, n203: 7, n268: 7 });
+nodes2.n253 = new Node(253, { n203: 7, n268: 19 });
+nodes2.n268 = new Node(268, { n210: 7, n253: 19 });
 
-// Nodes g(n) distance is stored in connected notes object as a key:value pair of node name: distance
-nodes.n73 = new Node(73, { n79: 6, n149: 8 });
-nodes.n79 = new Node(79, { n73: 6, n82: 3 });
-nodes.n82 = new Node(82, { n79: 3, n88: 6 });
-nodes.n88 = new Node(88, { n82: 6, n156: 8 });
-nodes.n149 = new Node(149, { n73: 8, n156: 11, n203: 3 });
-nodes.n156 = new Node(156, { n88: 8, n149: 11, n210: 3 });
-nodes.n203 = new Node(203, { n149: 3, n210: 7, n253: 7 });
-nodes.n210 = new Node(210, { n156: 3, n203: 7, n268: 7 });
-nodes.n253 = new Node(253, { n203: 7, n268: 19 });
-nodes.n268 = new Node(268, { n210: 7, n253: 19 });
 
-console.log(nodes)
+
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
@@ -73,7 +74,7 @@ class Ghost {
         this.currentCell = startingCell;
 
     }
-
+    direction;
     frightened() {
 
     }
@@ -103,12 +104,15 @@ for (i = 0; i < cellCount; i++) {
     const cell = document.createElement('div');
     cell.style.height = `${100 / rows}%`;
     cell.style.width = `${100 / cols}%`;
-    if (decisionCells.includes(i)) {
-        cell.innerText = i;
-    }
-    cell.dataset.index = i;
-    cell.dataset.col = i % cols === 0 ? 1 : i % cols;
+    // if (decisionCells.includes(i)) {
+    //     cell.innerText = i;
+    // }
 
+    cell.dataset.index = i;
+    cell.dataset.col = i % cols;
+    cell.dataset.row = Math.floor(i / cols);
+
+    cell.innerText = i;
 
     container.append(cell);
 
@@ -144,7 +148,17 @@ for (i = 0; i < cellCount; i++) {
     cells.push(cell);
 }
 
-//console.log(cells)
+
+
+decisionCells.forEach(item => {
+    const connects = [item - 1, item + 1, item + 18, item - 18];
+    const filtered = connects.filter(i => validCells.includes(i));
+
+    const node = new Node(item, filtered);
+    nodes[`n${item}`] = node;
+})
+
+
 
 // Moves pacman in current direction
 function pacmanMove(direction) {
@@ -152,7 +166,6 @@ function pacmanMove(direction) {
     const relevantClass = findDirectionClass(direction);
     // Moves pacman at {pacmanSpeed} speed
     interval = setInterval(() => {
-        console.log(`Current Cell: ${currentPacmanCell} + Blinky Cell: ${blinky.currentCell} + Heuristic: ${calcHeuristicVal(blinky)}`);
 
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
@@ -291,25 +304,57 @@ function handleKeyDown(e) {
 document.addEventListener('keydown', handleKeyDown);
 
 
-// pacmanMove(3);
-// blinky.chase(1);
-
-
 
 // callback function for blinky.chase
 function blinkyChase(direction) {
     let prevCell = blinky.currentCell;
-    // keep track of whether there was food or powerups in previous cell, to replace them
+
     // Move - starting direction right (1)
     let interval = setInterval(() => {
-        console.log(calcHeuristicVal(blinky));
+        blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
-        if (decisionCells.includes(blinky.currentCell)) {
+        if (decisionCells.includes(prevCell)) {
+            const index = prevCell;
+            console.log("CURRENT CELL:" + index);
+            // console.log("PACMAN CELL: " + currentPacmanCell)
             const target = calcTargetCell(blinky);
-            
+            const bestNode = astar(`n${index}`, target)
+            // console.log(`Index Col: ${cells[index].dataset.col}`)
+            // console.log(`BestNode Col: ${cells[bestNode].dataset.col}`)
+            // console.log(`Index Row: ${cells[index].dataset.row}`)
+            // console.log(`bestNode Col: ${cells[bestNode].dataset.row}`)
+            if (cells[index].dataset.col === cells[bestNode].dataset.col) {
+
+                if (cells[index].dataset.row > cells[bestNode].dataset.row) {
+                    direction = 2;
+                    nextCell = index + 18;
+                } else {
+                    direction = 0;
+                    nextCell = index - 18;
+                }
+            } else if (cells[index].dataset.row === cells[bestNode].dataset.row) {
+                if (cells[index].col < cells[bestNode].col && (bestNode !== 149 || bestNode !== 156)) {
+                    direction = 1;
+                    nextCell = index + 1;
+                } else if (cells[index].col > cells[bestNode].col && (bestNode !== 149 || bestNode !== 156)) {
+                    console.log("GOT HERE!")
+                    direction = 3;
+                    nextCell = index - 1;
+                } else {
+                    if (bestNode === 149) {
+                        direction = 1;
+                        nextCell = index + 1;
+                    } else {
+                        direction = 3;
+                        nextCell = index - 1;
+                    }
+                }
+            }
+        } else {
+            nextCell = findNextCell(direction, blinky.currentCell);
         }
-        nextCell = findNextCell(direction, blinky.currentCell);
+
 
         if (isValidCell(nextCell)) {
             // replace food and power ups after blinky passed through
@@ -395,28 +440,70 @@ function calcTargetCell(ghost) {
 }
 
 function astar(node, target) {
-    let fNVals = {} // obj of h(n) values for each node to target 
-    const cNodes = node.connectedNodes; // object of nodes:distances
+    let fnVals = {} // obj of h(n) values for each node to target 
+    const cNodes = nodes2[node].connectedNodes; // object of nodes:distances
+    console.log(`Possible Nodes:`);
+    console.log(cNodes)
     for (i = 0; i < Object.keys(cNodes).length; i++) {
         const connNode = Object.keys(cNodes)[i] // node name
-        const index = nodes[connNode].index; // 'i'th node in connected nodes list, get index
+        const index = nodes2[connNode].index; // 'i'th node in connected nodes list, get index
         const hN = calcHeuristicVal(index, target);   // h(n) of node to target
         const gN = cNodes[connNode]; //distance
         const fN = hN + gN;
-        fNVals[connNode] = fN
+        fnVals[index] = fN
     }
 
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
-
+    console.log("BEST NODE: " + lowest[0])
     return lowest[0]; // Node to go towards
 }
+
+function newAStar(ghost, index, target) {
+    let fnVals = {};
+    const nodeName = `n${index}`;
+    const cNodes = nodes[nodeName].connectedNodes;
+
+    // Disallow reversing direction and handle edge case cells
+    if (ghost.direction === 0) {
+        cNodes.filter(item => item === (index + 18));
+    } else if (ghost.direction === 1) {
+        if (index === 144) {
+            cNodes.filter(item => item === 161)
+        }
+        cNodes.filter(item => item === (index - 1))
+    } else if (ghost.direction === 2) {
+        cNodes.filter(item => (index - 18))
+    } else if (ghost.direction === 3) {
+        if (index === 161) {
+            cNodes.filter(item => item === 144)
+        }
+        cNodes.filter(item => item === (index + 1))
+    }
+    // iterate through possible nodes and calc f(n). g(n) = 1 for all because its each node is one cell apart
+    for (i = 0; i < cNodes.length; i++) {
+        const node = cNodes[i];
+        const hN = calcHeuristicVal(node, target);
+        const gN = 1;
+        const fN = hN + gN;
+
+        fnVals[node] = fN;
+    }
+
+    let entries = Object.entries(fnVals);
+    let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
+    console.log("F(N) VALUES: " + entries)
+    console.log("BEST NODE: " + lowest[0], "f(n) Value: " + lowest[1]);
+
+    return lowest[0]; // Node to go towards
+
+}
+
 
 // Calc Euclidian distance between ghost and pacman
 function calcHeuristicVal(node, target) {
 
     let position = cells[target].dataset.col - cells[node].dataset.col;
-    console.log(position)
     let vert;
     // If target is to the left of the node we need to ceil the vert distance, otherwise floor
     if (position >= 0) {
@@ -425,17 +512,21 @@ function calcHeuristicVal(node, target) {
 
         vert = Math.ceil((target - node) / rows);
     }
-    console.log("VERT: " + vert)
+
     // Calc the cell in pacman's row and ghost's column
     let cellInRow = node + (rows * vert);
-    console.log("CEll in row: " + cellInRow);
+
     let horiz = target - cellInRow;
-    console.log("HORIZ: " + horiz)
+
 
     let h2 = vert ** 2 + horiz ** 2;
     return Math.sqrt(h2);
 }
 
+
+
+pacmanMove(3);
+blinky.chase(1);
 
 
 
