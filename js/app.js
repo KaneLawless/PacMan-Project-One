@@ -24,13 +24,13 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-const startingCell = 199;
+const startingCell = 120;
 let interval;
 let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 124;
+const blinkyStart = 214;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -198,7 +198,7 @@ function setUp() {
                 distance = Math.abs((index - cell) / cols);
             }
 
-            nodes[nodeId][cellId] = distance;
+            nodes[nodeId].connectedNodes[cellId] = distance;
         }
     }
 
@@ -360,43 +360,14 @@ function blinkyChase(direction) {
         blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
-        if (decisionCells.includes(prevCell)) {
+        if (nodeCells.includes(prevCell)) {
             const index = prevCell;
             console.log("CURRENT CELL:" + index);
             // console.log("PACMAN CELL: " + currentPacmanCell)
             const target = calcTargetCell(blinky);
             const bestNode = astar(`n${index}`, target)
-            // console.log(`Index Col: ${ cells[index].dataset.col }`)
-            // console.log(`BestNode Col: ${ cells[bestNode].dataset.col }`)
-            // console.log(`Index Row: ${ cells[index].dataset.row }`)
-            // console.log(`bestNode Col: ${ cells[bestNode].dataset.row }`)
-            if (cells[index].dataset.col === cells[bestNode].dataset.col) {
+            nextCell = nextCellComplex();
 
-                if (cells[index].dataset.row > cells[bestNode].dataset.row) {
-                    direction = 2;
-                    nextCell = index + 18;
-                } else {
-                    direction = 0;
-                    nextCell = index - 18;
-                }
-            } else if (cells[index].dataset.row === cells[bestNode].dataset.row) {
-                if (cells[index].col < cells[bestNode].col && (bestNode !== 149 || bestNode !== 156)) {
-                    direction = 1;
-                    nextCell = index + 1;
-                } else if (cells[index].col > cells[bestNode].col && (bestNode !== 149 || bestNode !== 156)) {
-                    console.log("GOT HERE!")
-                    direction = 3;
-                    nextCell = index - 1;
-                } else {
-                    if (bestNode === 149) {
-                        direction = 1;
-                        nextCell = index + 1;
-                    } else {
-                        direction = 3;
-                        nextCell = index - 1;
-                    }
-                }
-            }
         } else {
             nextCell = findNextCell(direction, blinky.currentCell);
         }
@@ -427,8 +398,8 @@ function blinkyChase(direction) {
 
             cells[nextCell].classList.add(blinky.cssClass);
             blinky.currentCell = nextCell;
-
-        } else {
+        }
+        else {
             handleCorners(direction, blinky, interval);
         }
     }, blinky.speed);
@@ -438,7 +409,6 @@ function blinkyChase(direction) {
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost, interval) {
     let randNum = Math.floor(Math.random() * 4);
-    // if direction is up or down, try left, else right
     if (direction === 0 || direction === 2) {
 
         while (randNum === 0 || randNum === 2) {
@@ -485,14 +455,46 @@ function calcTargetCell(ghost) {
     return targetCell;
 }
 
+
+function nextCellComplex(direction, index, bestNode) {
+    let nextCell;
+    if (cells[index].dataset.col === cells[bestNode].dataset.col) {
+        if (cells[index].dataset.row > cells[bestNode].dataset.row) {
+            console.log("GOT HERE @ cell " + index)
+            direction = 0;
+            nextCell = index - 18;
+        } else {
+            direction = 2;
+            nextCell = index + 18;
+        }
+    } else if (cells[index].dataset.row === cells[bestNode].dataset.row) {
+        if (cells[index].col < cells[bestNode].col) {
+            direction = 1;
+            nextCell = index + 1;
+        } else if (cells[index].col > cells[bestNode].col) {
+            direction = 3;
+            nextCell = index - 1;
+        } else {
+            if (bestNode === 149) {
+                direction = 1;
+                nextCell = index + 1;
+            } else {
+                direction = 3;
+                nextCell = index - 1;
+            }
+        }
+    }
+}
+
+
 function astar(node, target) {
     let fnVals = {} // obj of h(n) values for each node to target 
-    const cNodes = nodes2[node].connectedNodes; // object of nodes:distances
+    const cNodes = nodes[node].connectedNodes; // object of nodes:distances
     console.log(`Possible Nodes: `);
     console.log(cNodes)
     for (i = 0; i < Object.keys(cNodes).length; i++) {
         const connNode = Object.keys(cNodes)[i] // node name
-        const index = nodes2[connNode].index; // 'i'th node in connected nodes list, get index
+        const index = nodes[connNode].index; // 'i'th node in connected nodes list, get index
         const hN = calcHeuristicVal(index, target);   // h(n) of node to target
         const gN = cNodes[connNode]; //distance
         const fN = hN + gN;
@@ -533,7 +535,7 @@ function calcHeuristicVal(node, target) {
 
 setUp()
 pacmanMove(3);
-blinky.chase(1);
+blinky.chase(3);
 
 
 
