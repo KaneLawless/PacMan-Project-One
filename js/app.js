@@ -19,6 +19,9 @@ const invalidCells = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 
 
 const homeCells = [115, 116, 117, 118, 133, 136, 150, 151, 154, 155, 169, 170, 171, 172];
 const powerUpCells = [19, 34, 289, 304];
+const decisionCells = [73, 79, 82, 88, 149, 156, 203, 210, 253, 268];
+const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 244, 257, 264, 289, 304];
+const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
 const startingCell = 205;
@@ -32,6 +35,31 @@ const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
 
+
+class Node {
+    constructor(index, connectedNodes) {
+        this.connectedNodes = connectedNodes;
+        this.index = index;
+    }
+    hDist; // euclid distance from target
+
+}
+
+const nodes = {} // array containing the Node objects
+
+// Nodes g(n) distance is stored in connected notes object as a key:value pair of node name: distance
+nodes.n73 = new Node(73, { n79: 6, n149: 8 });
+nodes.n79 = new Node(79, { n73: 6, n82: 3 });
+nodes.n82 = new Node(82, { n79: 3, n88: 6 });
+nodes.n88 = new Node(88, { n82: 6, n156: 8 });
+nodes.n149 = new Node(149, { n73: 8, n156: 11, n203: 3 });
+nodes.n156 = new Node(156, { n88: 8, n149: 11, n210: 3 });
+nodes.n203 = new Node(203, { n149: 3, n210: 7, n253: 7 });
+nodes.n210 = new Node(210, { n156: 3, n203: 7, n268: 7 });
+nodes.n253 = new Node(253, { n203: 7, n268: 19 });
+nodes.n268 = new Node(268, { n210: 7, n253: 19 });
+
+console.log(nodes)
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
@@ -75,9 +103,12 @@ for (i = 0; i < cellCount; i++) {
     const cell = document.createElement('div');
     cell.style.height = `${100 / rows}%`;
     cell.style.width = `${100 / cols}%`;
+    if (decisionCells.includes(i)) {
+        cell.innerText = i;
+    }
     cell.dataset.index = i;
     cell.dataset.col = i % cols === 0 ? 1 : i % cols;
-    cell.innerText = i;
+
 
     container.append(cell);
 
@@ -260,8 +291,8 @@ function handleKeyDown(e) {
 document.addEventListener('keydown', handleKeyDown);
 
 
-pacmanMove(3);
-blinky.chase(1);
+// pacmanMove(3);
+// blinky.chase(1);
 
 
 
@@ -384,5 +415,11 @@ function calcHeuristicVal(ghost) {
     let h2 = vert ** 2 + horiz ** 2;
     return Math.sqrt(h2);
 }
+
+
+function calcCost() {
+
+}
+
 
 
