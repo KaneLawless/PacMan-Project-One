@@ -181,7 +181,6 @@ function setUp() {
 
 
     // calc direction between nodes.
-    // console.log(nodes)
     for (i = 0; i < Object.keys(nodes).length; i++) {
         const nodeId = Object.keys(nodes)[i]
         const index = nodes[nodeId].index;
@@ -215,7 +214,6 @@ function pacmanMove(direction) {
 
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
-        //console.log(nextCell)
         // Ensures next cell is valid to enter
         if (isValidCell(nextCell)) {
             // Deletes pacman from cell when leaving
@@ -253,7 +251,6 @@ function isValidCell(cell) {
 // Calculates next cell based on current direction
 function findNextCell(direction, currentCell) {
     let nextCell;
-    //console.log("current cell: " + currentCell)
 
     // Left
     if (direction === 3) {
@@ -281,11 +278,9 @@ function findNextCell(direction, currentCell) {
     }
     // Error
     else {
-        console.log(nextCell)
         console.log("Error in cell calculation");
 
     }
-    //console.log("NEXT: " + nextCell)
     return nextCell;
 }
 
@@ -357,33 +352,29 @@ function blinkyChase(direction) {
 
     // Move - starting direction right (1)
     let interval = setInterval(() => {
-        console.log("START OF INTERVAL DIRECTION: " + direction)
+
         blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
         if (nodeCells.includes(prevCell)) {
             const index = prevCell;
             console.log("CURRENT CELL:" + index);
-            // console.log("PACMAN CELL: " + currentPacmanCell)
             const target = calcTargetCell(blinky);
             const bestNode = astar(`n${index}`, target)
             const [c, d] = nextCellComplex(direction, index, bestNode);
 
-            console.log("GOT HERE, NEXT CELL: " + c + " DIRECTION: " + d)
+            console.log("NEXT CELL: " + c + " DIRECTION: " + d)
             nextCell = c;
             direction = d;
         } else {
-            console.log("in ELSE Statement")
-            console.log("ELSE STATEMENT DIRECTION: " + direction)
+
             nextCell = findNextCell(direction, blinky.currentCell);
-            console.log("IF STATEMENT NEXTCELL: " + nextCell)
+
         }
 
-        console.log("BEFORE VALIDITY CHECK: " + nextCell)
-        console.log("BEFORE VALIDITY DIRECTION: " + direction)
+
         if (isValidCell(nextCell)) {
-            console.log("PASSED VALID CELL CHECK")
-            console.log("AFTER VALIDITY CHECK DIRECTION: " + direction)
+
             // replace food and power ups after blinky passed through
             if (hadFood) {
                 cells[prevCell].classList.add('food');
@@ -471,31 +462,34 @@ function calcTargetCell(ghost) {
 function nextCellComplex(direction, index, bestNode) {
     let nextCell;
     if (cells[index].dataset.col === cells[bestNode].dataset.col) {
-        console.log("SAME COLUMN")
         if (Number(cells[index].dataset.row) > Number(cells[bestNode].dataset.row)) {
-            console.log(cells[index].dataset.row > cells[bestNode].dataset.row)
-            console.log(typeof cells[index].dataset.row)
-            console.log("SAME COL AND ROW > bestnode")
-            console.log(`Index: ${index}, BestNode: ${bestNode}`)
-            console.log(`index row: ${cells[index].dataset.row}, bestnode row: ${cells[bestNode].dataset.row}`)
+
             direction = 0;
         } else {
             direction = 2;
         };
     }
-
+    // same row
     if (cells[index].dataset.row === cells[bestNode].dataset.row) {
         if (Number(cells[index].dataset.col) < Number(cells[bestNode].dataset.col)) {
-            direction = 1;
+            if (index === 149) {
+                direction = 3;
+            } else {
+                direction = 1;
+            }
         } else {
-            direction = 3
+            if (index === 156) {
+                direction = 1;
+            } else {
+                direction = 3
+            }
         }
     }
 
 
 
     nextCell = findNextCell(direction, index)
-    console.log("DIRECTION!!!! " + direction)
+    console.log("DIRECTION " + direction)
     console.log("CURRENT CELL: " + blinky.currentCell)
     console.log("NEXTCELL: " + nextCell)
     return [nextCell, direction]
