@@ -24,13 +24,13 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-const startingCell = 120;
+const startingCell = 159;
 let interval;
 let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 109;
+const blinkyStart = 156;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -192,7 +192,11 @@ function setUp() {
 
             let distance;
             if (cells[index].dataset.row === cells[cell].dataset.row) {
-                distance = Math.abs(index - cell);
+                if (index === 149 && cell === 156 || index === 156 && cell === 149) {
+                    distance = 11;
+                } else {
+                    distance = Math.abs(index - cell);
+                }
             } else {
                 distance = Math.abs((index - cell) / cols);
             }
@@ -356,18 +360,21 @@ function blinkyChase(direction) {
         blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
-        if (nodeCells.includes(prevCell)) {
+
+        // Prevent ghosts from turning around on corners
+        if (corners.includes(prevCell)) {
+            const [d, n] = handleCorners(direction, blinky, interval);
+            nextCell = n;
+            direction = d;
+        } else if (nodeCells.includes(prevCell)) {
             const index = prevCell;
-            console.log("CURRENT CELL:" + index);
             const target = calcTargetCell(blinky);
             const bestNode = astar(`n${index}`, target)
             const [c, d] = nextCellComplex(direction, index, bestNode);
 
-            console.log("NEXT CELL: " + c + " DIRECTION: " + d)
             nextCell = c;
             direction = d;
         } else {
-
             nextCell = findNextCell(direction, blinky.currentCell);
 
         }
@@ -402,50 +409,38 @@ function blinkyChase(direction) {
         } else {
             console.log("FAILED VALIDITY")
         }
-        // else {
-        //     handleCorners(direction, blinky, interval);
-        // }
+
     }, blinky.speed);
 
 };
 
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost, interval) {
-    let randNum = Math.floor(Math.random() * 4);
-    if (direction === 0 || direction === 2) {
+    let nextCell;
 
-        while (randNum === 0 || randNum === 2) {
-            randNum = Math.floor(Math.random() * 4);
-        }
-        direction = randNum;
-        let nextCell = findNextCell(direction, ghost.currentCell);
+    if (direction === 1 || direction === 3) {
+        direction = 0
+        nextCell = findNextCell(direction, ghost.currentCell)
         if (!isValidCell(nextCell)) {
-            if (direction === 3) {
-                direction = 1;
-            } else {
-                direction = 3;
-            }
-        };
-    }
-    // if direction is left or right, try down, else up
-    else {
-        while (randNum === 1 || randNum === 3) {
-            randNum = Math.floor(Math.random() * 4);
+            direction = 2;
+            nextCell = findNextCell(direction, ghost.currentCell);
         }
-        direction = randNum;
-        let nextCell = findNextCell(direction, ghost.currentCell)
+
+
+    } else {
+        direction = 1;
+        nextCell = findNextCell(direction, ghost.currentCell);
         if (!isValidCell(nextCell)) {
-            if (direction === 2) {
-                direction = 0;
-            } else {
-                direction = 2;
-            }
-        };
+            direction = 3;
+            nextCell = findNextCell(direction, ghost.currentCell);
+        }
+
     }
     // clear interval and start chase again
 
-    clearInterval(interval);
-    ghost.chase(direction);
+    //clearInterval(interval);
+    //ghost.chase(direction);
+    return [direction, nextCell]
 }
 
 // Calc ghost target cell
@@ -497,7 +492,9 @@ function nextCellComplex(direction, index, bestNode) {
 
 
 function astar(node, target) {
-    let fnVals = {} // obj of h(n) values for each node to target 
+    let fnVals = {}; // obj of f(n) values for each node to target 
+    let gnVals = {};
+    let hnVals = {};
     const cNodes = nodes[node].connectedNodes; // object of nodes:distances
     console.log(`Possible Nodes: `);
     console.log(cNodes)
@@ -507,9 +504,17 @@ function astar(node, target) {
         const hN = calcHeuristicVal(index, target);   // h(n) of node to target
         const gN = cNodes[connNode]; //distance
         const fN = hN + gN;
-        fnVals[index] = fN
+        gnVals[index] = gN;
+        hnVals[index] = hN;
+        fnVals[index] = fN;
     }
-
+    console.log("TARGET: " + target)
+    console.log("gnVals:")
+    console.log(gnVals)
+    console.log("hnVals:")
+    console.log(hnVals)
+    console.log("fnVals:")
+    console.log(fnVals)
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
     console.log("BEST NODE: " + lowest[0])
@@ -543,9 +548,9 @@ function calcHeuristicVal(node, target) {
 
 
 setUp()
-pacmanMove(3);
-blinky.chase(1);
-
+//pacmanMove(3);
+//blinky.chase(1);
+astar("n156", 159)
 
 
 
