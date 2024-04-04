@@ -30,7 +30,7 @@ let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 214;
+const blinkyStart = 109;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -357,6 +357,7 @@ function blinkyChase(direction) {
 
     // Move - starting direction right (1)
     let interval = setInterval(() => {
+        console.log("START OF INTERVAL DIRECTION: " + direction)
         blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
@@ -366,14 +367,23 @@ function blinkyChase(direction) {
             // console.log("PACMAN CELL: " + currentPacmanCell)
             const target = calcTargetCell(blinky);
             const bestNode = astar(`n${index}`, target)
-            nextCell = nextCellComplex();
+            const [c, d] = nextCellComplex(direction, index, bestNode);
 
+            console.log("GOT HERE, NEXT CELL: " + c + " DIRECTION: " + d)
+            nextCell = c;
+            direction = d;
         } else {
+            console.log("in ELSE Statement")
+            console.log("ELSE STATEMENT DIRECTION: " + direction)
             nextCell = findNextCell(direction, blinky.currentCell);
+            console.log("IF STATEMENT NEXTCELL: " + nextCell)
         }
 
-
+        console.log("BEFORE VALIDITY CHECK: " + nextCell)
+        console.log("BEFORE VALIDITY DIRECTION: " + direction)
         if (isValidCell(nextCell)) {
+            console.log("PASSED VALID CELL CHECK")
+            console.log("AFTER VALIDITY CHECK DIRECTION: " + direction)
             // replace food and power ups after blinky passed through
             if (hadFood) {
                 cells[prevCell].classList.add('food');
@@ -398,10 +408,12 @@ function blinkyChase(direction) {
 
             cells[nextCell].classList.add(blinky.cssClass);
             blinky.currentCell = nextCell;
+        } else {
+            console.log("FAILED VALIDITY")
         }
-        else {
-            handleCorners(direction, blinky, interval);
-        }
+        // else {
+        //     handleCorners(direction, blinky, interval);
+        // }
     }, blinky.speed);
 
 };
@@ -459,31 +471,34 @@ function calcTargetCell(ghost) {
 function nextCellComplex(direction, index, bestNode) {
     let nextCell;
     if (cells[index].dataset.col === cells[bestNode].dataset.col) {
-        if (cells[index].dataset.row > cells[bestNode].dataset.row) {
-            console.log("GOT HERE @ cell " + index)
+        console.log("SAME COLUMN")
+        if (Number(cells[index].dataset.row) > Number(cells[bestNode].dataset.row)) {
+            console.log(cells[index].dataset.row > cells[bestNode].dataset.row)
+            console.log(typeof cells[index].dataset.row)
+            console.log("SAME COL AND ROW > bestnode")
+            console.log(`Index: ${index}, BestNode: ${bestNode}`)
+            console.log(`index row: ${cells[index].dataset.row}, bestnode row: ${cells[bestNode].dataset.row}`)
             direction = 0;
-            nextCell = index - 18;
         } else {
             direction = 2;
-            nextCell = index + 18;
-        }
-    } else if (cells[index].dataset.row === cells[bestNode].dataset.row) {
-        if (cells[index].col < cells[bestNode].col) {
+        };
+    }
+
+    if (cells[index].dataset.row === cells[bestNode].dataset.row) {
+        if (Number(cells[index].dataset.col) < Number(cells[bestNode].dataset.col)) {
             direction = 1;
-            nextCell = index + 1;
-        } else if (cells[index].col > cells[bestNode].col) {
-            direction = 3;
-            nextCell = index - 1;
         } else {
-            if (bestNode === 149) {
-                direction = 1;
-                nextCell = index + 1;
-            } else {
-                direction = 3;
-                nextCell = index - 1;
-            }
+            direction = 3
         }
     }
+
+
+
+    nextCell = findNextCell(direction, index)
+    console.log("DIRECTION!!!! " + direction)
+    console.log("CURRENT CELL: " + blinky.currentCell)
+    console.log("NEXTCELL: " + nextCell)
+    return [nextCell, direction]
 }
 
 
@@ -535,7 +550,7 @@ function calcHeuristicVal(node, target) {
 
 setUp()
 pacmanMove(3);
-blinky.chase(3);
+blinky.chase(1);
 
 
 
