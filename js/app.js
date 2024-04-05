@@ -29,6 +29,7 @@ let cells = [];
 const startingCell = 205;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
+let pacmanDirection;
 
 let interval;
 let score = 0;
@@ -43,7 +44,7 @@ const pinkyStart = 155;
 const pinkyScatterCell = 1;
 
 
-let hadFood = true;
+let hadFood = false;
 let hadPowerUp = false;
 let prevNode;
 
@@ -138,7 +139,7 @@ function setUp() {
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
-        cell.innerText = i;
+        //cell.innerText = i;
 
         container.append(cell);
 
@@ -233,9 +234,6 @@ function pacmanMove(direction) {
 
         }
 
-        // if (levelComplete()){
-
-        // }
 
     }, pacmanSpeed);
 };
@@ -335,6 +333,7 @@ function handleKeyDown(e) {
     cells[currentPacmanCell].classList.add(findDirectionClass(direction))
 
     // Clear the previous interval and begin a new one in new direction
+    pacmanDirection = direction;
     clearInterval(interval)
     pacmanMove(direction);
 }
@@ -379,7 +378,9 @@ function chase(ghost, direction) {
 
             // replace food and power ups after blinky passed through
             if (hadFood) {
-                cells[prevCell].classList.add('food');
+                if (validCells.includes(prevCell)) {
+                    cells[prevCell].classList.add('food');
+                }
                 hadFood = false;
             }
 
@@ -451,7 +452,29 @@ function calcTargetCell(ghost) {
     if (ghost === blinky) {
         targetCell = currentPacmanCell;
     }
-
+    console.log("got here")
+    // 3 cells ahead of pacman -> tries to cut him off
+    if (ghost === pinky) {
+        if (pacmanDirection === 0) {
+            targetCell = currentPacmanCell - (3 * rows)
+        } else if (pacmanDirection === 1) {
+            targetCell = currentPacmanCell + 3;
+        } else if (pacmanDirection === 2) {
+            targetCell = (3 * rows) + currentPacmanCell
+        } else {
+            console.log("got here")
+            targetCell = currentPacmanCell - 3;
+        }
+        let nearRight = [currentPacmanCell + 1, currentPacmanCell + 2, currentPacmanCell + 3];
+        let nearLeft = [currentPacmanCell - 1, currentPacmanCell - 2, currentPacmanCell - 3];
+        let nearUp = [currentPacmanCell - rows, currentPacmanCell - (rows * 2), currentPacmanCell - (rows * 3)];
+        let nearDown = [currentPacmanCell + rows, currentPacmanCell + (rows * 2), currentPacmanCell + (rows * 3)];
+        let nearCells = nearRight.concat(nearLeft, nearUp, nearDown);
+        if (nearCells.includes(targetCell)) {
+            targetCell = currentPacmanCell;
+        }
+    }
+    console.log(targetCell)
     return targetCell;
 }
 
@@ -561,7 +584,7 @@ function pathfinder(node, target) {
 
 
 setUp()
-//chase(blinky, 1)
+chase(blinky, 1)
 chase(pinky, 1)
 pacmanMove(3)
 
@@ -699,6 +722,8 @@ function getClosestNode() {
 
 // Calc Euclidian distance between ghost and pacman
 function calcHeuristicVal(node, target) {
+    console.log("TARGET: " + target);
+    console.log("NODE: " + node);
     let position = cells[target].dataset.col - cells[node].dataset.col;
     let vert;
     // If target is to the left of the node we need to ceil the vert distance, otherwise floor

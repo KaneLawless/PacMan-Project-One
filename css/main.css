@@ -52,3 +52,9 @@
     background-repeat: no-repeat;
     background-size: contain;
 }
+
+.pinky {
+    background-image: url("../images/pinky.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
