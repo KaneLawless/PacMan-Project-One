@@ -62,7 +62,7 @@ nodes.n124 = new Node(124, { n88: 0, n120: 0 });
 nodes.n149 = new Node(149, { n113: 0, n156: 0, n203: 0 });
 nodes.n156 = new Node(156, { n120: 0, n149: 0, n210: 0 });
 nodes.n199 = new Node(199, { n203: 0, n253: 0 });
-nodes.n203 = new Node(203, { n149: 0, n199: 0, n205: 0 });
+nodes.n203 = new Node(203, { n149: 0, n199: 0, n205: 0, n257: 0 });
 nodes.n205 = new Node(205, { n203: 0, n241: 0 });
 nodes.n208 = new Node(208, { n210: 0, n244: 0 });
 nodes.n210 = new Node(210, { n156: 0, n208: 0, n214: 0, n264: 0 });
@@ -491,6 +491,82 @@ function nextCellComplex(direction, index, bestNode) {
 }
 
 
+
+function pathfinder(node, target) {
+    const gnVals = {};
+    let nextNode;
+    console.log("Start node: " + node)
+    console.log("Target:" + target)
+    const connNodes = nodes[node].connectedNodes;
+
+    console.log("connecting Nodes: ")
+    console.log(connNodes)
+    let iteration = 1;
+    // Iterate through connecting nodes
+    for (i = 0; i < Object.keys(connNodes).length; i++) {
+        console.log("iteration:" + iteration)
+        const nodeName = Object.keys(connNodes)[i];
+        const nodeIndex = nodes[nodeName].index;
+        let data = {};
+        let gN = connNodes[nodeName];
+        let neighbours = nodes[nodeName].connectedNodes;
+        console.log(`neighbours of ${nodeName}:`)
+        console.log(neighbours);
+        delete neighbours[node];
+        iteration++
+        fnVals = {};
+        for (j = 0; j < Object.keys(neighbours).length; j++) {
+            let neighbourName = Object.keys(neighbours)[j];
+            if (neighbourName === node) {
+                continue;
+            }
+
+            let index = nodes[neighbourName].index;
+            neighbours[neighbourName] += gN;
+            let hN = calcHeuristicVal(index, target)
+            let fN = neighbours[neighbourName] + hN;
+            console.log(`f(n) for ${neighbourName}: ${fN}`);
+            fnVals[neighbourName] = fN;
+            console.log("FNVALS:")
+            console.log(fnVals)
+            let bestNode;
+        }
+
+        if (Object.keys(fnVals).length === 1) {
+            bestNode = Object.keys(fnVals)[0]
+        } else {
+            let entries = Object.entries(fnVals);
+            console.log("entries: " + entries[0])
+            bestNode = entries.reduce((a, b) => a[1] > b[1] ? b[0] : a[0]);
+        }
+
+        console.log("!!!!!!!!!! BEST NODE: " + bestNode)
+        while (bestNode !== `n${target}`) {
+            console.log("BESTNODE: " + bestNode, "TARGET: " + `n${target}`)
+            pathfinder(bestNode, target)
+        }
+    }
+
+
+}
+
+
+setUp()
+// blinkyChase(3)
+//pacmanMove(3)
+
+
+
+
+
+console.log(getGn());
+
+
+
+
+
+
+
 function astar(node, target) {
     let fnVals = {}; // obj of f(n) values for each node to target 
     let gnVals = {};
@@ -515,17 +591,78 @@ function astar(node, target) {
     console.log(hnVals)
     console.log("fnVals:")
     console.log(fnVals)
+
+    // assess pacman node
+    let gnPacman = getGn()
+
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
     console.log("BEST NODE: " + lowest[0])
     return lowest[0]; // Node to go towards
 }
 
+function getGn() {
+    console.log(currentPacmanCell)
+    const adjacentCells = [currentPacmanCell - rows, currentPacmanCell + 1, currentPacmanCell + rows, currentPacmanCell - 1]
+    const validDirections = adjacentCells.map(cell => isValidCell(cell) ? true : false); // up, down, right, left
+    let distances = {}
+    console.log(validDirections)
+    if (validDirections[0]) {
 
+        let cell = currentPacmanCell - rows;
+        while (!nodeCells.includes(cell)) {
+            cell -= rows;
+        }
+
+        const distanceToNode = (currentPacmanCell - cell) / rows;
+        distances[cell] = distanceToNode;
+    }
+    if (validDirections[1]) {
+        let cell = currentPacmanCell + 1;
+        while (!nodeCells.includes(cell)) {
+            if (cell === 161) {
+                i = 144;
+            }
+            cell += 1;
+        }
+
+        const distanceToNode = cell - currentPacmanCell;
+        distances[cell] = distanceToNode;
+    }
+    if (validDirections[2]) {
+
+        let cell = currentPacmanCell + rows;
+        while (!nodeCells.includes(cell)) {
+            console.log(cell)
+
+            cell += rows;
+        }
+
+        const distanceToNode = (cell - currentPacmanCell) / rows;
+        distances[cell] = distanceToNode;
+    }
+    if (validDirections[3]) {
+        let cell = currentPacmanCell - 1;
+        while (!nodeCells.includes(cell)) {
+            if (cell === 144) {
+                i = 161;
+            }
+            cell -= 1;
+
+        }
+
+        const distanceToNode = (currentPacmanCell - cell);
+        distances[cell] = distanceToNode;
+    }
+    let entries = Object.entries(distances);
+    let closestNodeAndDistance = entries.reduce((a, b) => a[1] > b[1] ? b : a)
+
+    return closestNodeAndDistance
+
+}
 
 // Calc Euclidian distance between ghost and pacman
 function calcHeuristicVal(node, target) {
-
     let position = cells[target].dataset.col - cells[node].dataset.col;
     let vert;
     // If target is to the left of the node we need to ceil the vert distance, otherwise floor
@@ -546,11 +683,6 @@ function calcHeuristicVal(node, target) {
     return Math.sqrt(h2);
 }
 
-
-setUp()
-//pacmanMove(3);
-//blinky.chase(1);
-astar("n156", 159)
 
 
 
