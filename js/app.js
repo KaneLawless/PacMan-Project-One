@@ -24,13 +24,13 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-const startingCell = 159;
+const startingCell = 205;
 let interval;
 let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 const blinkySpeed = 300;
-const blinkyStart = 156;
+const blinkyStart = 110;
 const blinkyScatterCell = 16;
 let hadFood = true;
 let hadPowerUp = false;
@@ -143,7 +143,7 @@ function setUp() {
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
-        cell.innerText = i;
+        //cell.innerText = i;
 
         container.append(cell);
 
@@ -356,7 +356,6 @@ function blinkyChase(direction) {
 
     // Move - starting direction right (1)
     let interval = setInterval(() => {
-
         blinky.direction = direction;
         prevCell = blinky.currentCell;
         let nextCell;
@@ -366,18 +365,19 @@ function blinkyChase(direction) {
             const [d, n] = handleCorners(direction, blinky, interval);
             nextCell = n;
             direction = d;
-        } else if (nodeCells.includes(prevCell)) {
-            const index = prevCell;
-            const target = calcTargetCell(blinky);
-            const bestNode = astar(`n${index}`, target)
-            const [c, d] = nextCellComplex(direction, index, bestNode);
+        } else
+            if (nodeCells.includes(prevCell)) {
+                const index = prevCell;
+                const target = calcTargetCell(blinky);
+                const bestNode = astar(`n${index}`, target)
+                const [c, d] = nextCellComplex(direction, index, bestNode);
 
-            nextCell = c;
-            direction = d;
-        } else {
-            nextCell = findNextCell(direction, blinky.currentCell);
+                nextCell = c;
+                direction = d;
+            } else {
+                nextCell = findNextCell(direction, blinky.currentCell);
 
-        }
+            }
 
 
         if (isValidCell(nextCell)) {
@@ -406,6 +406,10 @@ function blinkyChase(direction) {
 
             cells[nextCell].classList.add(blinky.cssClass);
             blinky.currentCell = nextCell;
+            if (blinky.currentCell === currentPacmanCell) {
+                clearInterval(interval)
+
+            }
         } else {
             console.log("FAILED VALIDITY")
         }
@@ -413,6 +417,12 @@ function blinkyChase(direction) {
     }, blinky.speed);
 
 };
+
+
+function pinkyChase(direction) {
+
+}
+
 
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost, interval) {
@@ -436,10 +446,7 @@ function handleCorners(direction, ghost, interval) {
         }
 
     }
-    // clear interval and start chase again
 
-    //clearInterval(interval);
-    //ghost.chase(direction);
     return [direction, nextCell]
 }
 
@@ -456,6 +463,13 @@ function calcTargetCell(ghost) {
 
 function nextCellComplex(direction, index, bestNode) {
     let nextCell;
+
+    if (bestNode[0] === "n") {
+        bestNode = bestNode.substring(1)
+    }
+    console.log("************** ")
+    console.log("INDEX: " + index)
+    console.log("BESTNODE: " + bestNode)
     if (cells[index].dataset.col === cells[bestNode].dataset.col) {
         if (Number(cells[index].dataset.row) > Number(cells[bestNode].dataset.row)) {
 
@@ -552,17 +566,11 @@ function pathfinder(node, target) {
 
 
 setUp()
-// blinkyChase(3)
-//pacmanMove(3)
 
-
-
-
-
-console.log(getGn());
-
-
-
+let prevNode;
+//console.log(getGn(nodes["n120"].connectedNodes, 120))
+blinkyChase(1)
+pacmanMove(3)
 
 
 
@@ -571,11 +579,23 @@ function astar(node, target) {
     let fnVals = {}; // obj of f(n) values for each node to target 
     let gnVals = {};
     let hnVals = {};
-    const cNodes = nodes[node].connectedNodes; // object of nodes:distances
+    const cNodes = new Object(nodes[node].connectedNodes); // object of nodes:distances
+    console.log("CURRENT NODE BEING EVALUATED: " + node)
+    let cNodesArray = Object.keys(cNodes)
+    if (cNodesArray.includes(prevNode)) {
+        console.log("INSIDE IF STATEMENT")
+        let idx = cNodesArray.indexOf(prevNode)
+        cNodesArray.splice(idx, 1)
+    }
+
     console.log(`Possible Nodes: `);
     console.log(cNodes)
-    for (i = 0; i < Object.keys(cNodes).length; i++) {
-        const connNode = Object.keys(cNodes)[i] // node name
+
+    prevNode = String(node);
+
+
+    for (i = 0; i < cNodesArray.length; i++) {
+        const connNode = cNodesArray[i] // node name
         const index = nodes[connNode].index; // 'i'th node in connected nodes list, get index
         const hN = calcHeuristicVal(index, target);   // h(n) of node to target
         const gN = cNodes[connNode]; //distance
@@ -584,7 +604,6 @@ function astar(node, target) {
         hnVals[index] = hN;
         fnVals[index] = fN;
     }
-    console.log("TARGET: " + target)
     console.log("gnVals:")
     console.log(gnVals)
     console.log("hnVals:")
@@ -592,8 +611,11 @@ function astar(node, target) {
     console.log("fnVals:")
     console.log(fnVals)
 
-    // assess pacman node
-    let gnPacman = getGn()
+    //assess pacman node
+    if (target === currentPacmanCell) {
+        let gnPacman = getGn(cNodes, node)
+        fnVals[`n${currentPacmanCell}`] = gnPacman;
+    }
 
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
@@ -601,9 +623,32 @@ function astar(node, target) {
     return lowest[0]; // Node to go towards
 }
 
-function getGn() {
-    console.log(currentPacmanCell)
+
+
+function getGn(cNodes, ghostNode) {
+    const [node, distance] = getClosestNode();
+    console.log("GHOST NODE: " + ghostNode)
+    const ghostNodeIndex = nodes[ghostNode].index;
+    let accumDist = distance;
+    let bestNode = node;
+    let prevNode = node;
+    while (!Object.keys(cNodes).includes(ghostNode)) {
+        // cells[currentPacmanCell].style.backgroundColor = "red";
+        // cells[node].style.backgroundColor = "red";
+        cNodes = nodes[`n${bestNode}`].connectedNodes
+        bestNode = astar(`n${bestNode}`, ghostNodeIndex)
+        // cells[bestNode].style.backgroundColor = "red";
+        accumDist += cNodes[`n${bestNode}`];
+    }
+    console.log("PACMAN GN: " + accumDist)
+    return accumDist;
+}
+
+
+
+function getClosestNode() {
     const adjacentCells = [currentPacmanCell - rows, currentPacmanCell + 1, currentPacmanCell + rows, currentPacmanCell - 1]
+    console.log("!adjacent cells:" + adjacentCells)
     const validDirections = adjacentCells.map(cell => isValidCell(cell) ? true : false); // up, down, right, left
     let distances = {}
     console.log(validDirections)
@@ -633,8 +678,6 @@ function getGn() {
 
         let cell = currentPacmanCell + rows;
         while (!nodeCells.includes(cell)) {
-            console.log(cell)
-
             cell += rows;
         }
 
@@ -656,7 +699,7 @@ function getGn() {
     }
     let entries = Object.entries(distances);
     let closestNodeAndDistance = entries.reduce((a, b) => a[1] > b[1] ? b : a)
-
+    console.log("CLOSEST NODE:" + closestNodeAndDistance[0])
     return closestNodeAndDistance
 
 }
