@@ -24,16 +24,28 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
+
+
 const startingCell = 205;
-let interval;
-let score = 0;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
+
+let interval;
+let score = 0;
+
+
 const blinkySpeed = 300;
 const blinkyStart = 110;
 const blinkyScatterCell = 16;
+
+const pinkySpeed = 300;
+const pinkyStart = 155;
+const pinkyScatterCell = 1;
+
+
 let hadFood = true;
 let hadPowerUp = false;
+let prevNode;
 
 
 class Node {
@@ -77,22 +89,6 @@ nodes.n289 = new Node(289, { n253: 0, n304: 0 });
 nodes.n304 = new Node(304, { n268: 0, n289: 0 });
 
 
-
-// // Nodes g(n) distance is stored in connected notes object as a key:value pair of node name: distance
-nodes2.n73 = new Node(73, { n79: 6, n149: 8 });
-nodes2.n79 = new Node(79, { n73: 6, n82: 3 });
-nodes2.n82 = new Node(82, { n79: 3, n88: 6 });
-nodes2.n88 = new Node(88, { n82: 6, n156: 8 });
-nodes2.n149 = new Node(149, { n73: 8, n156: 11, n203: 3 });
-nodes2.n156 = new Node(156, { n88: 8, n149: 11, n210: 3 });
-nodes2.n203 = new Node(203, { n149: 3, n210: 7, n253: 7 });
-nodes2.n210 = new Node(210, { n156: 3, n203: 7, n268: 7 });
-nodes2.n253 = new Node(253, { n203: 7, n268: 19 });
-nodes2.n268 = new Node(268, { n210: 7, n253: 19 });
-
-
-
-
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
     constructor(name, speed, startingCell, chase, cssClass, scatterCell) {
@@ -117,15 +113,16 @@ class Ghost {
 
 // Chase object for storing individual movement mechanics during chase mode 
 const Chase = {
-    blinky: blinkyChase,
-    inky: () => { },
+    blinky: chase,
+    inky: chase,
     pinky: () => { },
     clyde: () => { }
 };
 
 // Blinky object
 const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell)
-
+// Pinky 
+const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell)
 
 function setUp() {
     // Create grid
@@ -135,15 +132,13 @@ function setUp() {
         const cell = document.createElement('div');
         cell.style.height = `${100 / rows}%`;
         cell.style.width = `${100 / cols}%`;
-        // if (decisionCells.includes(i)) {
-        //     cell.innerText = i;
-        // }
+
 
         cell.dataset.index = i;
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
-        //cell.innerText = i;
+        cell.innerText = i;
 
         container.append(cell);
 
@@ -351,31 +346,31 @@ document.addEventListener('keydown', handleKeyDown);
 
 
 // callback function for blinky.chase
-function blinkyChase(direction) {
-    let prevCell = blinky.currentCell;
+function chase(ghost, direction) {
+    let prevCell = ghost.currentCell;
 
     // Move - starting direction right (1)
     let interval = setInterval(() => {
-        blinky.direction = direction;
-        prevCell = blinky.currentCell;
+        ghost.direction = direction;
+        prevCell = ghost.currentCell;
         let nextCell;
 
         // Prevent ghosts from turning around on corners
         if (corners.includes(prevCell)) {
-            const [d, n] = handleCorners(direction, blinky, interval);
+            const [d, n] = handleCorners(direction, ghost, interval);
             nextCell = n;
             direction = d;
         } else
             if (nodeCells.includes(prevCell)) {
                 const index = prevCell;
-                const target = calcTargetCell(blinky);
+                const target = calcTargetCell(ghost);
                 const bestNode = astar(`n${index}`, target)
                 const [c, d] = nextCellComplex(direction, index, bestNode);
 
                 nextCell = c;
                 direction = d;
             } else {
-                nextCell = findNextCell(direction, blinky.currentCell);
+                nextCell = findNextCell(direction, ghost.currentCell);
 
             }
 
@@ -393,7 +388,7 @@ function blinkyChase(direction) {
                 hadPowerUp = false;
             }
 
-            cells[blinky.currentCell].classList.remove(blinky.cssClass);
+            cells[ghost.currentCell].classList.remove(ghost.cssClass);
 
             if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
@@ -401,12 +396,12 @@ function blinkyChase(direction) {
             } else if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
                 hadPowerUp = true;
-                prevCell = blinky.currentCell;
+                prevCell = ghost.currentCell;
             }
 
-            cells[nextCell].classList.add(blinky.cssClass);
-            blinky.currentCell = nextCell;
-            if (blinky.currentCell === currentPacmanCell) {
+            cells[nextCell].classList.add(ghost.cssClass);
+            ghost.currentCell = nextCell;
+            if (ghost.currentCell === currentPacmanCell) {
                 clearInterval(interval)
 
             }
@@ -414,7 +409,7 @@ function blinkyChase(direction) {
             console.log("FAILED VALIDITY")
         }
 
-    }, blinky.speed);
+    }, ghost.speed);
 
 };
 
@@ -566,10 +561,8 @@ function pathfinder(node, target) {
 
 
 setUp()
-
-let prevNode;
-//console.log(getGn(nodes["n120"].connectedNodes, 120))
-blinkyChase(1)
+//chase(blinky, 1)
+chase(pinky, 1)
 pacmanMove(3)
 
 
