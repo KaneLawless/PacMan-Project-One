@@ -31,7 +31,7 @@ let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 let pacmanDirection;
 
-let interval;
+let pacmanInterval;
 let score = 0;
 
 
@@ -43,12 +43,11 @@ const pinkySpeed = 300;
 const pinkyStart = 155;
 const pinkyScatterCell = 1;
 
+let foodLeft = 0;
 
-let hadFood = false;
-let hadPowerUp = false;
 let prevNode;
 
-
+let gameState;
 class Node {
     constructor(index, connectedNodes) {
         this.connectedNodes = connectedNodes;
@@ -92,7 +91,7 @@ nodes.n304 = new Node(304, { n268: 0, n289: 0 });
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
-    constructor(name, speed, startingCell, chase, cssClass, scatterCell) {
+    constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection) {
         this.name = name;
         this.speed = speed;
         this.startingCell = startingCell;
@@ -100,9 +99,11 @@ class Ghost {
         this.cssClass = cssClass;
         this.scatterCell = scatterCell;
         this.currentCell = startingCell;
+        this.startDirection = startDirection
 
     }
     direction;
+    interval;
     frightened() {
 
     }
@@ -121,9 +122,11 @@ const Chase = {
 };
 
 // Blinky object
-const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell)
+const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1)
 // Pinky 
-const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell)
+const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1)
+
+let ghosts = [blinky, pinky]
 
 function setUp() {
     // Create grid
@@ -150,6 +153,7 @@ function setUp() {
                 validCells.push(i);
                 if (!powerUpCells.includes(i) && i !== blinkyStart) {
                     cell.classList.add("food");
+                    foodLeft++
                 }
             }
         } // Style invalid cells 
@@ -168,9 +172,12 @@ function setUp() {
             cell.classList.add('pacman-left');
         };
 
-        if (i === blinkyStart) {
-            cell.classList.add('blinky');;
-        }
+        ghosts.forEach((ghost) => {
+            if (i === ghost.startingCell) {
+                cell.classList.add(ghost.cssClass);;
+            }
+        })
+
         // Create array of all cells
         cells.push(cell);
     }
@@ -210,7 +217,7 @@ function pacmanMove(direction) {
     // Finds correct image class 
     const relevantClass = findDirectionClass(direction);
     // Moves pacman at {pacmanSpeed} speed
-    interval = setInterval(() => {
+    pacmanInterval = setInterval(() => {
 
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
@@ -223,16 +230,37 @@ function pacmanMove(direction) {
             if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
                 score += 500;
-                // frighten()
+                frighten()
             } else if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
+                foodLeft -= 1;
                 score = + 100;
+                if (foodLeft === 0) {
+                    alert(`LEVEL COMPLETE! Score: ${score}`);
+                }
             };
 
             cells[nextCell].classList.add(relevantClass);
             currentPacmanCell = nextCell;
 
         }
+
+        if (gameState !== 1)
+            ghosts.forEach(ghost => {
+                if (cells[ghost.currentCell].classList.contains(relevantClass)) {
+                    clearInterval(pacmanInterval)
+                    ghosts.forEach(ghost => {
+                        clearInterval(ghost.interval)
+                    })
+                }
+            })
+
+        // if (ghost.currentCell === currentPacmanCell) {
+        //     clearInterval(pacmanInterval)
+        //     ghosts.forEach(ghost => {
+        //         clearInterval(ghost.interval)
+        //     })
+        // }
 
 
     }, pacmanSpeed);
@@ -297,9 +325,7 @@ function findDirectionClass(direction) {
     }
 }
 
-function frighten() {
 
-}
 
 function levelComplete() {
     // check if all food is eaten (no food or power-up classes remain in any cell)
@@ -334,7 +360,7 @@ function handleKeyDown(e) {
 
     // Clear the previous interval and begin a new one in new direction
     pacmanDirection = direction;
-    clearInterval(interval)
+    clearInterval(pacmanInterval)
     pacmanMove(direction);
 }
 
@@ -346,17 +372,21 @@ document.addEventListener('keydown', handleKeyDown);
 
 // callback function for blinky.chase
 function chase(ghost, direction) {
+    gameState = 0;
     let prevCell = ghost.currentCell;
+    let hadFood;
+    let hadPowerUp;
 
     // Move - starting direction right (1)
-    let interval = setInterval(() => {
+    ghost.interval = setInterval(() => {
         ghost.direction = direction;
         prevCell = ghost.currentCell;
         let nextCell;
 
         // Prevent ghosts from turning around on corners
         if (corners.includes(prevCell)) {
-            const [d, n] = handleCorners(direction, ghost, interval);
+            
+            const [d, n] = handleCorners(direction, ghost);
             nextCell = n;
             direction = d;
         } else
@@ -397,17 +427,25 @@ function chase(ghost, direction) {
             } else if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
                 hadPowerUp = true;
-                prevCell = ghost.currentCell;
+                prevCell = ghost.currentCell; // for reversing?
             }
 
             cells[nextCell].classList.add(ghost.cssClass);
             ghost.currentCell = nextCell;
             if (ghost.currentCell === currentPacmanCell) {
-                clearInterval(interval)
+                // game over
+                ghosts.forEach(ghost => {
+                    clearInterval(ghost.interval)
+                })
+                clearInterval(pacmanInterval);
+
 
             }
         } else {
             console.log("FAILED VALIDITY")
+            console.log("direction:" + ghost.direction)
+            console.log("next cell: " + nextCell)
+            console.log("ghost:" + ghost.name)
         }
 
     }, ghost.speed);
@@ -415,13 +453,102 @@ function chase(ghost, direction) {
 };
 
 
-function pinkyChase(direction) {
+
+function frighten() {
+    gameState = 1;
+    ghosts.forEach((ghost) => {
+        console.log("direction on frighten: " + ghost.direction)
+        console.log("cell on frighten: " + ghost.currentCell)
+        console.log(ghost)
+        if (ghost.direction === 0) {
+            ghost.direction = 2;
+        } else if (ghost.direction === 1) {
+            ghost.direction = 3;
+        } else if (ghost.direction === 2) {
+            ghost.direction = 0;
+        } else {
+            ghost.direction = 1
+        }
+
+        let hadFood;
+        let hadPowerUp;
+        let prevCell;
+        clearInterval(ghost.interval);
+        ghost.interval = setInterval(() => {
+
+
+            let nextCell = findNextCell(ghost.direction, ghost.currentCell);
+            if (nodeCells.includes(nextCell)) {
+                let rand = Math.floor(Math.random() * 4);
+                while (!(isValidCell(findNextCell(rand, nextCell)))) {
+                    rand = Math.floor(Math.random() * 4);
+                }
+                ghost.direction = rand;
+            }
+
+            if (isValidCell(nextCell)) {
+
+                // replace food and power ups after blinky passed through
+                if (hadFood) {
+                    if (validCells.includes(prevCell)) {
+                        cells[prevCell].classList.add('food');
+                    }
+                    hadFood = false;
+                }
+
+                if (hadPowerUp) {
+                    cells[prevCell].classList.add('power-up');
+                    hadPowerUp = false;
+                }
+
+
+                if (cells[nextCell].classList.contains('food')) {
+                    cells[nextCell].classList.remove('food');
+                    hadFood = true;
+                } else if (cells[nextCell].classList.contains('power-up')) {
+                    cells[nextCell].classList.remove('power-up');
+                    hadPowerUp = true;
+
+                }
+                cells[ghost.currentCell].classList.remove('frightened');
+                cells[ghost.currentCell].classList.remove(ghost.cssClass);
+                cells[nextCell].classList.add('frightened');
+                prevCell = ghost.currentCell;
+                ghost.currentCell = nextCell;
+
+                nextCell = findNextCell(ghost.direction, ghost.currentCell)
+                if (ghost.currentCell === currentPacmanCell) {
+                    clearInterval(ghost.interval);
+                    cells[ghost.currentCell].classList.remove('frightened');
+                    ghost.currentCell = ghost.startingCell;
+                    cells[ghost.startingCell].classList.add(ghost.cssClass);
+                    score += 1000
+                    setTimeout(() => chase(ghost, ghost.startDirection), 1000)
+
+                }
+            } else {
+                console.log("direction before fail: " + ghost.direction)
+                console.log("CELL BEFORE FAIL: " + ghost.currentCell)
+                console.log("FAILED VALIDITY " + nextCell)
+            }
+
+
+
+        }, ghost.speed);
+
+        timeout = setTimeout(() => {
+            cells[ghost.currentCell].classList.remove("frightened");
+            clearInterval(ghost.interval);
+            chase(ghost, ghost.direction)
+        }, 6000
+        )
+
+    })
 
 }
 
-
 // Turns ghosts on corners with no choice
-function handleCorners(direction, ghost, interval) {
+function handleCorners(direction, ghost) {
     let nextCell;
 
     if (direction === 1 || direction === 3) {
@@ -442,7 +569,7 @@ function handleCorners(direction, ghost, interval) {
         }
 
     }
-
+    ghost.direction = direction;
     return [direction, nextCell]
 }
 
@@ -452,7 +579,7 @@ function calcTargetCell(ghost) {
     if (ghost === blinky) {
         targetCell = currentPacmanCell;
     }
-    console.log("got here")
+
     // 3 cells ahead of pacman -> tries to cut him off
     if (ghost === pinky) {
         if (pacmanDirection === 0) {
@@ -462,7 +589,7 @@ function calcTargetCell(ghost) {
         } else if (pacmanDirection === 2) {
             targetCell = (3 * rows) + currentPacmanCell
         } else {
-            console.log("got here")
+
             targetCell = currentPacmanCell - 3;
         }
         let nearRight = [currentPacmanCell + 1, currentPacmanCell + 2, currentPacmanCell + 3];
@@ -473,8 +600,11 @@ function calcTargetCell(ghost) {
         if (nearCells.includes(targetCell)) {
             targetCell = currentPacmanCell;
         }
+
+
+
     }
-    console.log(targetCell)
+
     return targetCell;
 }
 
@@ -485,9 +615,7 @@ function nextCellComplex(direction, index, bestNode) {
     if (bestNode[0] === "n") {
         bestNode = bestNode.substring(1)
     }
-    console.log("************** ")
-    console.log("INDEX: " + index)
-    console.log("BESTNODE: " + bestNode)
+
     if (cells[index].dataset.col === cells[bestNode].dataset.col) {
         if (Number(cells[index].dataset.row) > Number(cells[bestNode].dataset.row)) {
 
@@ -516,71 +644,69 @@ function nextCellComplex(direction, index, bestNode) {
 
 
     nextCell = findNextCell(direction, index)
-    console.log("DIRECTION " + direction)
-    console.log("CURRENT CELL: " + blinky.currentCell)
-    console.log("NEXTCELL: " + nextCell)
+
     return [nextCell, direction]
 }
 
 
 
-function pathfinder(node, target) {
-    const gnVals = {};
-    let nextNode;
-    console.log("Start node: " + node)
-    console.log("Target:" + target)
-    const connNodes = nodes[node].connectedNodes;
+// function pathfinder(node, target) {
+//     const gnVals = {};
+//     let nextNode;
+//     console.log("Start node: " + node)
+//     console.log("Target:" + target)
+//     const connNodes = nodes[node].connectedNodes;
 
-    console.log("connecting Nodes: ")
-    console.log(connNodes)
-    let iteration = 1;
-    // Iterate through connecting nodes
-    for (i = 0; i < Object.keys(connNodes).length; i++) {
-        console.log("iteration:" + iteration)
-        const nodeName = Object.keys(connNodes)[i];
-        const nodeIndex = nodes[nodeName].index;
-        let data = {};
-        let gN = connNodes[nodeName];
-        let neighbours = nodes[nodeName].connectedNodes;
-        console.log(`neighbours of ${nodeName}:`)
-        console.log(neighbours);
-        delete neighbours[node];
-        iteration++
-        fnVals = {};
-        for (j = 0; j < Object.keys(neighbours).length; j++) {
-            let neighbourName = Object.keys(neighbours)[j];
-            if (neighbourName === node) {
-                continue;
-            }
+//     console.log("connecting Nodes: ")
+//     console.log(connNodes)
+//     let iteration = 1;
+//     // Iterate through connecting nodes
+//     for (i = 0; i < Object.keys(connNodes).length; i++) {
+//         console.log("iteration:" + iteration)
+//         const nodeName = Object.keys(connNodes)[i];
+//         const nodeIndex = nodes[nodeName].index;
+//         let data = {};
+//         let gN = connNodes[nodeName];
+//         let neighbours = nodes[nodeName].connectedNodes;
+//         console.log(`neighbours of ${nodeName}:`)
+//         console.log(neighbours);
+//         delete neighbours[node];
+//         iteration++
+//         fnVals = {};
+//         for (j = 0; j < Object.keys(neighbours).length; j++) {
+//             let neighbourName = Object.keys(neighbours)[j];
+//             if (neighbourName === node) {
+//                 continue;
+//             }
 
-            let index = nodes[neighbourName].index;
-            neighbours[neighbourName] += gN;
-            let hN = calcHeuristicVal(index, target)
-            let fN = neighbours[neighbourName] + hN;
-            console.log(`f(n) for ${neighbourName}: ${fN}`);
-            fnVals[neighbourName] = fN;
-            console.log("FNVALS:")
-            console.log(fnVals)
-            let bestNode;
-        }
+//             let index = nodes[neighbourName].index;
+//             neighbours[neighbourName] += gN;
+//             let hN = calcHeuristicVal(index, target)
+//             let fN = neighbours[neighbourName] + hN;
+//             console.log(`f(n) for ${neighbourName}: ${fN}`);
+//             fnVals[neighbourName] = fN;
+//             console.log("FNVALS:")
+//             console.log(fnVals)
+//             let bestNode;
+//         }
 
-        if (Object.keys(fnVals).length === 1) {
-            bestNode = Object.keys(fnVals)[0]
-        } else {
-            let entries = Object.entries(fnVals);
-            console.log("entries: " + entries[0])
-            bestNode = entries.reduce((a, b) => a[1] > b[1] ? b[0] : a[0]);
-        }
+//         if (Object.keys(fnVals).length === 1) {
+//             bestNode = Object.keys(fnVals)[0]
+//         } else {
+//             let entries = Object.entries(fnVals);
+//             console.log("entries: " + entries[0])
+//             bestNode = entries.reduce((a, b) => a[1] > b[1] ? b[0] : a[0]);
+//         }
 
-        console.log("!!!!!!!!!! BEST NODE: " + bestNode)
-        while (bestNode !== `n${target}`) {
-            console.log("BESTNODE: " + bestNode, "TARGET: " + `n${target}`)
-            pathfinder(bestNode, target)
-        }
-    }
+//         console.log("!!!!!!!!!! BEST NODE: " + bestNode)
+//         while (bestNode !== `n${target}`) {
+//             console.log("BESTNODE: " + bestNode, "TARGET: " + `n${target}`)
+//             pathfinder(bestNode, target)
+//         }
+//     }
 
 
-}
+// }
 
 
 setUp()
@@ -596,16 +722,15 @@ function astar(node, target) {
     let gnVals = {};
     let hnVals = {};
     const cNodes = new Object(nodes[node].connectedNodes); // object of nodes:distances
-    console.log("CURRENT NODE BEING EVALUATED: " + node)
+    // console.log("CURRENT NODE BEING EVALUATED: " + node)
     let cNodesArray = Object.keys(cNodes)
     if (cNodesArray.includes(prevNode)) {
-        console.log("INSIDE IF STATEMENT")
         let idx = cNodesArray.indexOf(prevNode)
         cNodesArray.splice(idx, 1)
     }
 
-    console.log(`Possible Nodes: `);
-    console.log(cNodes)
+    // console.log(`Possible Nodes: `);
+    // console.log(cNodes)
 
     prevNode = String(node);
 
@@ -620,12 +745,12 @@ function astar(node, target) {
         hnVals[index] = hN;
         fnVals[index] = fN;
     }
-    console.log("gnVals:")
-    console.log(gnVals)
-    console.log("hnVals:")
-    console.log(hnVals)
-    console.log("fnVals:")
-    console.log(fnVals)
+    // console.log("gnVals:")
+    // console.log(gnVals)
+    // console.log("hnVals:")
+    // console.log(hnVals)
+    // console.log("fnVals:")
+    // console.log(fnVals)
 
     //assess pacman node
     if (target === currentPacmanCell) {
@@ -635,7 +760,7 @@ function astar(node, target) {
 
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
-    console.log("BEST NODE: " + lowest[0])
+    console.log(node + " BEST NODE: " + lowest[0])
     return lowest[0]; // Node to go towards
 }
 
@@ -643,11 +768,9 @@ function astar(node, target) {
 
 function getGn(cNodes, ghostNode) {
     const [node, distance] = getClosestNode();
-    console.log("GHOST NODE: " + ghostNode)
     const ghostNodeIndex = nodes[ghostNode].index;
     let accumDist = distance;
     let bestNode = node;
-    let prevNode = node;
     while (!Object.keys(cNodes).includes(ghostNode)) {
         // cells[currentPacmanCell].style.backgroundColor = "red";
         // cells[node].style.backgroundColor = "red";
@@ -656,7 +779,6 @@ function getGn(cNodes, ghostNode) {
         // cells[bestNode].style.backgroundColor = "red";
         accumDist += cNodes[`n${bestNode}`];
     }
-    console.log("PACMAN GN: " + accumDist)
     return accumDist;
 }
 
@@ -664,10 +786,8 @@ function getGn(cNodes, ghostNode) {
 
 function getClosestNode() {
     const adjacentCells = [currentPacmanCell - rows, currentPacmanCell + 1, currentPacmanCell + rows, currentPacmanCell - 1]
-    console.log("!adjacent cells:" + adjacentCells)
     const validDirections = adjacentCells.map(cell => isValidCell(cell) ? true : false); // up, down, right, left
     let distances = {}
-    console.log(validDirections)
     if (validDirections[0]) {
 
         let cell = currentPacmanCell - rows;
@@ -715,15 +835,13 @@ function getClosestNode() {
     }
     let entries = Object.entries(distances);
     let closestNodeAndDistance = entries.reduce((a, b) => a[1] > b[1] ? b : a)
-    console.log("CLOSEST NODE:" + closestNodeAndDistance[0])
     return closestNodeAndDistance
 
 }
 
 // Calc Euclidian distance between ghost and pacman
 function calcHeuristicVal(node, target) {
-    console.log("TARGET: " + target);
-    console.log("NODE: " + node);
+
     let position = cells[target].dataset.col - cells[node].dataset.col;
     let vert;
     // If target is to the left of the node we need to ceil the vert distance, otherwise floor
