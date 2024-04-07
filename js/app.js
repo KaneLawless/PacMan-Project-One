@@ -1,6 +1,9 @@
-// Game container
+// Game container and start button
 const container = document.querySelector('.container');
+const body = document.querySelector("body")
 const startButton = document.querySelector(".start-button")
+
+
 // Initialising variables
 const cols = 18;
 const rows = 18;
@@ -25,7 +28,9 @@ const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
 
-
+let startingHtml;
+let scoreBox;
+let restartButton;
 const startingCell = 205;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
@@ -44,10 +49,11 @@ const pinkyStart = 155;
 const pinkyScatterCell = 1;
 
 let foodLeft = 0;
-
 let prevNode;
-
 let gameState;
+
+
+
 class Node {
     constructor(index, connectedNodes) {
         this.connectedNodes = connectedNodes;
@@ -230,12 +236,14 @@ function pacmanMove(direction) {
             }
             if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
-                score += 500;
+                score += 250;
+                updateScore();
                 frighten()
             } else if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
                 foodLeft -= 1;
-                score = + 100;
+                score += 100;
+                updateScore()
                 if (foodLeft === 0) {
                     alert(`LEVEL COMPLETE! Score: ${score}`);
                 }
@@ -253,6 +261,7 @@ function pacmanMove(direction) {
                     ghosts.forEach(ghost => {
                         clearInterval(ghost.interval)
                     })
+                    gameOver();
                 }
             })
 
@@ -264,7 +273,8 @@ function pacmanMove(direction) {
                     ghost.currentCell = ghost.startingCell;
                     ghost.direction = ghost.startDirection;
                     cells[ghost.startingCell].classList.add(ghost.cssClass);
-                    score += 1000;
+                    score += 500;
+                    updateScore()
                 }
             })
         }
@@ -385,6 +395,7 @@ startButton.addEventListener("click", handleStart)
 
 
 
+
 // callback function for blinky.chase
 function chase(ghost, direction) {
     gameState = 0;
@@ -454,6 +465,7 @@ function chase(ghost, direction) {
                     clearInterval(ghost.interval)
                 })
                 clearInterval(pacmanInterval);
+                gameOver()
 
 
             }
@@ -887,5 +899,47 @@ function calcHeuristicVal(node, target) {
 }
 
 
-function handleStart(){}
+function handleStart(e) {
+    startingHtml = container.innerHTML;
+    container.innerHTML = "";
+    setUp()
+    scoreBox = document.createElement('p')
+    scoreBox.innerText = `Score: ${score}`;
+    scoreBox.style.color = "white";
+    scoreBox.style.fontSize = "1.5rem";
+    scoreBox.style.fontFamily = "Arcade-R";
+    scoreBox.style.textShadow = "-1px -1px lightgrey";
+    scoreBox.style.margin = "0";
+    body.insertBefore(scoreBox, container)
+
+}
+
+function updateScore() {
+    scoreBox.innerText = `Score: ${score}`
+    console.log(score);
+}
+function gameOver() {
+    console.log("GAMEOVER")
+    container.innerHTML = ""
+    scoreBox.innerHTML = ""
+    container.style.backgroundColor = "black";
+    const p = document.createElement('p');
+    p.innerText = `Final Score: ${score}`;
+    p.style.color = "white";
+    p.style.fontSize = "1.5rem";
+    p.style.fontFamily = "Arcade-R";
+    p.style.textShadow = "-1px -1px lightgrey";
+    p.style.margin = "5rem auto";
+    p.style.height = "100px"
+    container.append(p)
+    container.style.flexDirection = "column"
+    restartButton = document.createElement('button');
+    restartButton.classList.add('restart-button');
+    restartButton.innerText = "PLAY AGAIN"
+    container.append(restartButton);
+    restartButton.addEventListener("click", restart)
+
+}
+
+
 
