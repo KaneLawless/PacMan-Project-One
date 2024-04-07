@@ -1,6 +1,6 @@
 // Game container
 const container = document.querySelector('.container');
-
+const startButton = document.querySelector(".start-button")
 // Initialising variables
 const cols = 18;
 const rows = 18;
@@ -129,6 +129,7 @@ const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', p
 let ghosts = [blinky, pinky]
 
 function setUp() {
+    container.style.backgroundColor = "white";
     // Create grid
     for (i = 0; i < cellCount; i++) {
 
@@ -158,7 +159,7 @@ function setUp() {
             }
         } // Style invalid cells 
         else {
-            cell.style.backgroundColor = "grey";
+            cell.style.backgroundColor = "#0133ff";
             cell.style.border = "1px solid black";
         }
 
@@ -254,6 +255,19 @@ function pacmanMove(direction) {
                     })
                 }
             })
+
+        if (gameState === 1) {
+            ghosts.forEach(ghost => {
+                if (cells[ghost.currentCell].classList.contains(relevantClass)) {
+                    clearInterval(ghost.interval);
+                    cells[ghost.currentCell].classList.remove('frightened');
+                    ghost.currentCell = ghost.startingCell;
+                    ghost.direction = ghost.startDirection;
+                    cells[ghost.startingCell].classList.add(ghost.cssClass);
+                    score += 1000;
+                }
+            })
+        }
 
         // if (ghost.currentCell === currentPacmanCell) {
         //     clearInterval(pacmanInterval)
@@ -367,6 +381,7 @@ function handleKeyDown(e) {
 
 // Keydown event listener
 document.addEventListener('keydown', handleKeyDown);
+startButton.addEventListener("click", handleStart)
 
 
 
@@ -385,7 +400,7 @@ function chase(ghost, direction) {
 
         // Prevent ghosts from turning around on corners
         if (corners.includes(prevCell)) {
-            
+
             const [d, n] = handleCorners(direction, ghost);
             nextCell = n;
             direction = d;
@@ -432,6 +447,7 @@ function chase(ghost, direction) {
 
             cells[nextCell].classList.add(ghost.cssClass);
             ghost.currentCell = nextCell;
+            ghost.direction = direction
             if (ghost.currentCell === currentPacmanCell) {
                 // game over
                 ghosts.forEach(ghost => {
@@ -444,6 +460,7 @@ function chase(ghost, direction) {
         } else {
             console.log("FAILED VALIDITY")
             console.log("direction:" + ghost.direction)
+            console.log("current cell: " + ghost.currentCell)
             console.log("next cell: " + nextCell)
             console.log("ghost:" + ghost.name)
         }
@@ -457,17 +474,21 @@ function chase(ghost, direction) {
 function frighten() {
     gameState = 1;
     ghosts.forEach((ghost) => {
-        console.log("direction on frighten: " + ghost.direction)
-        console.log("cell on frighten: " + ghost.currentCell)
-        console.log(ghost)
+        // console.log("direction on frighten: " + ghost.direction)
+        // console.log("cell on frighten: " + ghost.currentCell)
+        // console.log(ghost)
         if (ghost.direction === 0) {
+            console.log("set direction in frighten")
             ghost.direction = 2;
         } else if (ghost.direction === 1) {
             ghost.direction = 3;
+            console.log("set direction in frighten")
         } else if (ghost.direction === 2) {
             ghost.direction = 0;
+            console.log("set direction in frighten")
         } else {
             ghost.direction = 1
+            console.log("set direction in frighten")
         }
 
         let hadFood;
@@ -517,13 +538,14 @@ function frighten() {
                 ghost.currentCell = nextCell;
 
                 nextCell = findNextCell(ghost.direction, ghost.currentCell)
-                if (ghost.currentCell === currentPacmanCell) {
-                    clearInterval(ghost.interval);
-                    cells[ghost.currentCell].classList.remove('frightened');
-                    ghost.currentCell = ghost.startingCell;
-                    cells[ghost.startingCell].classList.add(ghost.cssClass);
-                    score += 1000
-                    setTimeout(() => chase(ghost, ghost.startDirection), 1000)
+                if (cells[currentPacmanCell].classList.contains(ghost.cssClass)) {
+                    // clearInterval(ghost.interval);
+                    // cells[ghost.currentCell].classList.remove('frightened');
+                    // ghost.currentCell = ghost.startingCell;
+                    // ghost.direction = ghost.startDirection;
+                    // cells[ghost.startingCell].classList.add(ghost.cssClass);
+                    // score += 1000
+                    //setTimeout(() => chase(ghost, ghost.startDirection), 1000)
 
                 }
             } else {
@@ -552,9 +574,12 @@ function handleCorners(direction, ghost) {
     let nextCell;
 
     if (direction === 1 || direction === 3) {
+        console.log("inside first direction controller")
         direction = 0
         nextCell = findNextCell(direction, ghost.currentCell)
         if (!isValidCell(nextCell)) {
+            console.log("validity failed for cell")
+
             direction = 2;
             nextCell = findNextCell(direction, ghost.currentCell);
         }
@@ -569,7 +594,6 @@ function handleCorners(direction, ghost) {
         }
 
     }
-    ghost.direction = direction;
     return [direction, nextCell]
 }
 
@@ -709,10 +733,10 @@ function nextCellComplex(direction, index, bestNode) {
 // }
 
 
-setUp()
-chase(blinky, 1)
-chase(pinky, 1)
-pacmanMove(3)
+//setUp()
+// chase(blinky, 1)
+// chase(pinky, 1)
+// pacmanMove(3)
 
 
 
@@ -760,7 +784,7 @@ function astar(node, target) {
 
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
-    console.log(node + " BEST NODE: " + lowest[0])
+    // console.log(node + " BEST NODE: " + lowest[0])
     return lowest[0]; // Node to go towards
 }
 
@@ -863,5 +887,5 @@ function calcHeuristicVal(node, target) {
 }
 
 
-
+function handleStart(){}
 

@@ -2,12 +2,51 @@
     box-sizing: border-box;
 }
 
+@font-face {
+    font-family: 'Arcade-R';
+
+    src: url('../webfonts_Arcade-R/Arcade-R.ttf.woff') format('woff'),
+        url('../webfonts_Arcade-R/Arcade-R.ttf.svg#Arcade-R') format('svg'),
+        url('../webfonts_Arcade-R/Arcade-R.ttf.eot'),
+        url('../webfonts_Arcade-R/Arcade-R.ttf.eot?#iefix') format('embedded-opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    background-color: black;
+}
+
 .container {
+    background-color: black;
     width: 599.94px;
     height: 599.94px;
     margin: 2.5rem auto;
     display: flex;
     flex-wrap: wrap
+}
+
+.logo {
+    width: 80%;
+    height: 40%;
+    margin: 0 auto;
+    margin-left: 5rem;
+
+}
+
+.start-button {
+    background-color: lightgrey;
+    width: 200px;
+    height: 50px;
+    margin: 0 auto;
+    font-family: 'Arcade-R';
+    text-shadow: -1px -1px black;
+    color: grey;
+    font-size: 0.9rem;
+    box-shadow: 0 4px grey;
+    border: lightgrey;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
 .pacman-left {
