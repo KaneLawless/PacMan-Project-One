@@ -116,6 +116,12 @@ body {
     background-size: contain;
 }
 
+.inky {
+    background-image: url("../images/inky.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
 .clyde {
     background-image: url("../images/clyde.png");
     background-repeat: no-repeat;

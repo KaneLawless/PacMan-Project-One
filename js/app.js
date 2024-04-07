@@ -1,7 +1,7 @@
 // Game container and start button
 const container = document.querySelector('.container');
 const body = document.querySelector("body")
-const startButton = document.querySelector(".start-button")
+let startButton = document.querySelector(".start-button")
 
 
 // Initialising variables
@@ -48,7 +48,15 @@ const pinkySpeed = 300;
 const pinkyStart = 155;
 const pinkyScatterCell = 1;
 
-let foodLeft = 0;
+const clydeSpeed = 300
+const clydeStart = 150;
+const clydeScatterCell = 307;
+
+const inkySpeed = 300;
+const inkyStart = 115;
+const inkyScatterCell = 322;
+let startingFood = 0;
+let foodEaten = 0;
 let prevNode;
 let gameState;
 
@@ -63,7 +71,6 @@ class Node {
 }
 
 const nodes = {} // array containing the Node objects
-const nodes2 = {}
 
 nodes.n19 = new Node(19, { n25: 0, n73: 0 });
 nodes.n25 = new Node(25, { n19: 0, n79: 0 });
@@ -106,33 +113,31 @@ class Ghost {
         this.scatterCell = scatterCell;
         this.currentCell = startingCell;
         this.startDirection = startDirection
+        this.direction = startDirection;
 
     }
-    direction;
     interval;
-    frightened() {
 
-    }
-
-    scatter(scatterCell) {
-
-    }
 }
 
 // Chase object for storing individual movement mechanics during chase mode 
 const Chase = {
     blinky: chase,
     inky: chase,
-    pinky: () => { },
-    clyde: () => { }
+    pinky: chase,
+    clyde: chase,
 };
 
-// Blinky object
-const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1)
-// Pinky 
-const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1)
+// Ghost objects
+const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1);
 
-let ghosts = [blinky, pinky]
+const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1);
+
+const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 1);
+
+const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 3);
+
+let ghosts = [blinky, pinky, inky, clyde]
 
 function setUp() {
     container.style.backgroundColor = "white";
@@ -149,7 +154,7 @@ function setUp() {
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
-        //cell.innerText = i;
+        cell.innerText = i;
 
         container.append(cell);
 
@@ -158,9 +163,10 @@ function setUp() {
             // Ignore home cells and invalid cells, add food
             if (!homeCells.includes(i)) {
                 validCells.push(i);
-                if (!powerUpCells.includes(i) && i !== blinkyStart) {
+
+                if (!powerUpCells.includes(i)) {
                     cell.classList.add("food");
-                    foodLeft++
+                    startingFood++;
                 }
             }
         } // Style invalid cells 
@@ -176,6 +182,7 @@ function setUp() {
         // Place pacman to start
         if (i === startingCell) {
             cell.classList.remove('food');
+            startingFood--
             cell.classList.add('pacman-left');
         };
 
@@ -215,10 +222,17 @@ function setUp() {
         }
     }
 
-    console.log(nodes)
+    console.log(nodes);
 
+    document.addEventListener('keydown', handleKeyDown);
+    startButton.addEventListener("click", handleStart)
+
+
+    ghosts.forEach((ghost) => {
+        console.log(ghost)
+
+    })
 }
-
 // Moves pacman in current direction
 function pacmanMove(direction) {
     // Finds correct image class 
@@ -241,10 +255,12 @@ function pacmanMove(direction) {
                 frighten()
             } else if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
-                foodLeft -= 1;
+                foodEaten++;
                 score += 100;
                 updateScore()
-                if (foodLeft === 0) {
+                console.log("startingFood: " + startingFood)
+                console.log("food eaten: " + foodEaten)
+                if (foodEaten === startingFood) {
                     alert(`LEVEL COMPLETE! Score: ${score}`);
                 }
             };
@@ -327,6 +343,7 @@ function findNextCell(direction, currentCell) {
     }
     // Error
     else {
+        console.log()
         console.log("Error in cell calculation");
 
     }
@@ -390,7 +407,7 @@ function handleKeyDown(e) {
 
 
 // Keydown event listener
-document.addEventListener('keydown', handleKeyDown);
+let keydownListener = document.addEventListener('keydown', handleKeyDown);
 startButton.addEventListener("click", handleStart)
 
 
@@ -470,11 +487,11 @@ function chase(ghost, direction) {
 
             }
         } else {
-            console.log("FAILED VALIDITY")
-            console.log("direction:" + ghost.direction)
-            console.log("current cell: " + ghost.currentCell)
-            console.log("next cell: " + nextCell)
-            console.log("ghost:" + ghost.name)
+            // console.log("FAILED VALIDITY")
+            // console.log("direction:" + ghost.direction)
+            // console.log("current cell: " + ghost.currentCell)
+            // console.log("next cell: " + nextCell)
+            // console.log("ghost:" + ghost.name)
         }
 
     }, ghost.speed);
@@ -486,9 +503,6 @@ function chase(ghost, direction) {
 function frighten() {
     gameState = 1;
     ghosts.forEach((ghost) => {
-        // console.log("direction on frighten: " + ghost.direction)
-        // console.log("cell on frighten: " + ghost.currentCell)
-        // console.log(ghost)
         if (ghost.direction === 0) {
             console.log("set direction in frighten")
             ghost.direction = 2;
@@ -521,7 +535,6 @@ function frighten() {
 
             if (isValidCell(nextCell)) {
 
-                // replace food and power ups after blinky passed through
                 if (hadFood) {
                     if (validCells.includes(prevCell)) {
                         cells[prevCell].classList.add('food');
@@ -534,6 +547,8 @@ function frighten() {
                     hadPowerUp = false;
                 }
 
+                cells[ghost.currentCell].classList.remove('frightened');
+                cells[ghost.currentCell].classList.remove(ghost.cssClass);
 
                 if (cells[nextCell].classList.contains('food')) {
                     cells[nextCell].classList.remove('food');
@@ -543,8 +558,8 @@ function frighten() {
                     hadPowerUp = true;
 
                 }
-                cells[ghost.currentCell].classList.remove('frightened');
-                cells[ghost.currentCell].classList.remove(ghost.cssClass);
+
+
                 cells[nextCell].classList.add('frightened');
                 prevCell = ghost.currentCell;
                 ghost.currentCell = nextCell;
@@ -911,6 +926,8 @@ function handleStart(e) {
     scoreBox.style.textShadow = "-1px -1px lightgrey";
     scoreBox.style.margin = "0";
     body.insertBefore(scoreBox, container)
+    setTimeout(pacmanMove(3), 1000)
+    //setTimeout(ghosts.forEach((ghost) => chase(ghost, ghost.startDirection)), 1000)
 
 }
 
@@ -918,10 +935,12 @@ function updateScore() {
     scoreBox.innerText = `Score: ${score}`
     console.log(score);
 }
+
 function gameOver() {
     console.log("GAMEOVER")
+    document.removeEventListener("keydown", handleKeyDown)
     container.innerHTML = ""
-    scoreBox.innerHTML = ""
+    body.removeChild(scoreBox);
     container.style.backgroundColor = "black";
     const p = document.createElement('p');
     p.innerText = `Final Score: ${score}`;
@@ -942,4 +961,20 @@ function gameOver() {
 }
 
 
-
+function restart() {
+    container.innerHTML = startingHtml;
+    startButton = document.querySelector(".start-button")
+    startButton.addEventListener("click", handleStart)
+    container.style.flexDirection = "row";
+    cells = [];
+    currentPacmanCell = startingCell;
+    ghosts.forEach(ghost => {
+        ghost.direction = ghost.startDirection;
+        ghost.currentCell = ghost.startingCell;
+    });
+    startingFood = 0;
+    foodEaten = 0;
+    score = 0;
+    validCells = [],
+        prevNode = undefined;
+}
