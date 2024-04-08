@@ -2,9 +2,16 @@
 const container = document.querySelector('.container');
 const body = document.querySelector("body")
 let startButton = document.querySelector(".start-button")
-
+let startAudio = document.getElementById("start-audio")
+let chompAudio = document.getElementById('chomp');
+let frightenedAudio = document.getElementById("frightened-audio");
+let deadAudio = document.getElementById('dead');
+let winAudio = document.getElementById('win');
+let eatGhostAudio = document.getElementById('eat-ghost')
 
 // Initialising variables
+let chompAudioInterval;
+let frightenedInterval;
 const cols = 18;
 const rows = 18;
 const cellCount = cols * rows;
@@ -35,9 +42,15 @@ const startingCell = 205;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 let pacmanDirection;
-
 let pacmanInterval;
+
+let timeouts = [];
+let arrIntervals = [];
+
+
 let score = 0;
+
+let lost = 1;
 
 
 const blinkySpeed = 300;
@@ -60,7 +73,7 @@ const inkyScatterCell = 304;
 let startingFood = 0;
 let foodEaten = 0;
 let prevNode;
-let gameState;
+let gameState = 0;
 
 
 
@@ -106,7 +119,7 @@ nodes.n304 = new Node(304, { n268: 0, n289: 0 });
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
-    constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection, homeCell) {
+    constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection, homeCell, frightened) {
         this.name = name;
         this.speed = speed;
         this.startingCell = startingCell;
@@ -117,6 +130,7 @@ class Ghost {
         this.startDirection = startDirection
         this.direction = startDirection;
         this.homeCell = homeCell;
+        this.frightened = frightened
 
     }
     interval;
@@ -132,15 +146,17 @@ const Chase = {
 };
 
 // Ghost objects
-const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1, 169);
+const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1, 169, 0);
 
-const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1, pinkyStart);
+const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1, pinkyStart, 0);
 
-const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 3, inkyStart);
+const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 3, inkyStart, 0);
 
-const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 1, clydeStart);
+const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 1, clydeStart, 0);
 
-let ghosts = [blinky, pinky, clyde, inky]
+let ghosts = [blinky, pinky, inky, clyde]
+
+startButton.addEventListener("click", handleStart)
 
 function setUp() {
     container.style.backgroundColor = "white";
@@ -157,7 +173,7 @@ function setUp() {
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
-        cell.innerText = i;
+        //cell.innerText = i;
 
         container.append(cell);
 
@@ -179,9 +195,9 @@ function setUp() {
         }
 
         //Add power ups to designated cells
-        if (powerUpCells.includes(i)) {
-            cell.classList.add('power-up');
-        }
+        // if (powerUpCells.includes(i)) {
+        //     cell.classList.add('power-up');
+        // }
         // Place pacman to start
         if (i === startingCell) {
             cell.classList.remove('food');
@@ -227,7 +243,7 @@ function setUp() {
 
     console.log(nodes);
 
-    document.addEventListener('keydown', handleKeyDown);
+
     startButton.addEventListener("click", handleStart)
 
 
@@ -241,8 +257,10 @@ function pacmanMove(direction) {
     // Finds correct image class 
     const relevantClass = findDirectionClass(direction);
     // Moves pacman at {pacmanSpeed} speed
+    if (pacmanInterval) {
+        clearInterval(pacmanInterval)
+    }
     pacmanInterval = setInterval(() => {
-
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
         // Ensures next cell is valid to enter
@@ -251,41 +269,50 @@ function pacmanMove(direction) {
             if (cells[currentPacmanCell].classList.contains(relevantClass)) {
                 cells[currentPacmanCell].classList.remove(relevantClass);
             }
+
+
+            cells[nextCell].classList.add(relevantClass);
+            currentPacmanCell = nextCell;
+
             if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
                 score += 250;
                 updateScore();
-
+                clearInterval(chompAudioInterval);
+                frightenedAudio.play()
                 frighten()
             } else if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
                 foodEaten++;
                 score += 100;
                 updateScore()
+                console.log("Food eaten: " + foodEaten)
                 if (foodEaten === startingFood) {
-                    alert(`LEVEL COMPLETE! Score: ${score}`);
+                    levelComplete();
                 }
             };
 
-            cells[nextCell].classList.add(relevantClass);
-            currentPacmanCell = nextCell;
-
         }
 
-        if (gameState !== 1)
-            ghosts.forEach(ghost => {
+
+        ghosts.forEach(ghost => {
+            if (ghost.frightened === 0) {
                 if (cells[ghost.currentCell].classList.contains(relevantClass)) {
                     clearInterval(pacmanInterval)
                     ghosts.forEach(ghost => {
                         clearInterval(ghost.interval)
                     })
+
                     gameOver();
                 }
-            })
+            }
+        })
 
-        if (gameState === 1) {
-            ghosts.forEach(ghost => {
+
+        ghosts.forEach(ghost => {
+            if (ghost.frightened === 1) {
                 if (cells[ghost.currentCell].classList.contains(relevantClass)) {
+                    eatGhostAudio.play();
                     clearInterval(ghost.interval);
                     cells[ghost.currentCell].classList.remove('frightened');
                     ghost.currentCell = ghost.homeCell;
@@ -294,15 +321,10 @@ function pacmanMove(direction) {
                     score += 500;
                     updateScore();
                 }
+            }
 
 
-            })
-
-        }
-
-
-
-
+        })
     }, pacmanSpeed);
 };
 
@@ -368,9 +390,7 @@ function findDirectionClass(direction) {
 
 
 
-function levelComplete() {
-    // check if all food is eaten (no food or power-up classes remain in any cell)
-}
+
 // Callback function for keydown handler
 function handleKeyDown(e) {
 
@@ -407,8 +427,7 @@ function handleKeyDown(e) {
 
 
 // Keydown event listener
-let keydownListener = document.addEventListener('keydown', handleKeyDown);
-startButton.addEventListener("click", handleStart)
+// let keydownListener = document.addEventListener('keydown', handleKeyDown);
 
 
 
@@ -416,12 +435,15 @@ startButton.addEventListener("click", handleStart)
 // callback function for blinky.chase
 function chase(ghost, direction) {
 
-    gameState = 0;
+    ghost.frightened = 0;
     let prevCell = ghost.currentCell;
     let hadFood;
     let hadPowerUp;
 
     // Move - starting direction right (1)
+    if (ghost.interval) {
+        clearInterval(ghost.interval);
+    }
     ghost.interval = setInterval(() => {
         ghost.direction = direction;
         prevCell = ghost.currentCell;
@@ -451,41 +473,40 @@ function chase(ghost, direction) {
         if (isValidCell(nextCell)) {
 
             // replace food and power ups after blinky passed through
-            if (hadFood) {
-                if (validCells.includes(prevCell)) {
-                    cells[prevCell].classList.add('food');
-                }
-                hadFood = false;
-            }
+            // if (hadFood) {
+            //     if (validCells.includes(prevCell)) {
+            //         cells[prevCell].classList.add('food');
+            //     }
+            //     hadFood = false;
+            // }
 
-            if (hadPowerUp) {
-                cells[prevCell].classList.add('power-up');
-                hadPowerUp = false;
-            }
+            // if (hadPowerUp) {
+            //     cells[prevCell].classList.add('power-up');
+            //     hadPowerUp = false;
+            // }
 
             cells[ghost.currentCell].classList.remove(ghost.cssClass);
 
-            if (cells[nextCell].classList.contains('food')) {
-                cells[nextCell].classList.remove('food');
-                hadFood = true;
-            } else if (cells[nextCell].classList.contains('power-up')) {
-                cells[nextCell].classList.remove('power-up');
-                hadPowerUp = true;
-                prevCell = ghost.currentCell; // for reversing?
-            }
+            // if (cells[nextCell].classList.contains('food')) {
+            //     cells[nextCell].classList.remove('food');
+            //     hadFood = true;
+            // } else if (cells[nextCell].classList.contains('power-up')) {
+            //     cells[nextCell].classList.remove('power-up');
+            //     hadPowerUp = true;
+            // }
 
             cells[nextCell].classList.add(ghost.cssClass);
             ghost.currentCell = nextCell;
             ghost.direction = direction
-            if (ghost.currentCell === currentPacmanCell) {
-                // game over
-                ghosts.forEach(ghost => {
-                    clearInterval(ghost.interval)
-                })
-                clearInterval(pacmanInterval);
-                gameOver()
-
-
+            if (ghost.frightened !== 1) {
+                if (ghost.currentCell === currentPacmanCell) {
+                    // game over
+                    ghosts.forEach(ghost => {
+                        clearInterval(ghost.interval)
+                    })
+                    clearInterval(pacmanInterval);
+                    gameOver()
+                }
             }
         } else {
             // console.log("FAILED VALIDITY")
@@ -496,16 +517,21 @@ function chase(ghost, direction) {
         }
 
     }, ghost.speed);
+    arrIntervals.push(ghost.interval)
 
 };
 
 
 
 function frighten() {
-    gameState = 1;
 
     ghosts.forEach((ghost) => {
-        if (ghost.interval) {
+        if (ghost.interval && !homeCells.includes(ghost.currentCell)) {
+            if (ghost.frightened === 1) {
+                clearTimeout(timeout)
+
+            }
+            ghost.frightened = 1;
             if (ghost.direction === 0) {
                 ghost.direction = 2;
             } else if (ghost.direction === 1) {
@@ -534,50 +560,54 @@ function frighten() {
 
                 if (isValidCell(nextCell)) {
 
-                    if (hadFood) {
-                        if (validCells.includes(prevCell)) {
-                            cells[prevCell].classList.add('food');
-                        }
-                        hadFood = false;
-                    }
+                    // if (hadFood) {
+                    //     if (validCells.includes(prevCell)) {
+                    //         cells[prevCell].classList.add('food');
+                    //     }
+                    //     hadFood = false;
+                    // }
 
-                    if (hadPowerUp) {
-                        cells[prevCell].classList.add('power-up');
-                        hadPowerUp = false;
-                    }
+                    // if (hadPowerUp) {
+                    //     cells[prevCell].classList.add('power-up');
+                    //     hadPowerUp = false;
+                    // }
 
                     cells[ghost.currentCell].classList.remove('frightened');
                     cells[ghost.currentCell].classList.remove(ghost.cssClass);
 
-                    if (cells[nextCell].classList.contains('food')) {
-                        cells[nextCell].classList.remove('food');
-                        hadFood = true;
-                    } else if (cells[nextCell].classList.contains('power-up')) {
-                        cells[nextCell].classList.remove('power-up');
-                        hadPowerUp = true;
+                    // if (cells[nextCell].classList.contains('food')) {
+                    //     //cells[nextCell].classList.remove('food');
+                    //     hadFood = true;
+                    // } else if (cells[nextCell].classList.contains('power-up')) {
+                    //     //cells[nextCell].classList.remove('power-up');
+                    //     hadPowerUp = true;
 
-                    }
+                    // }
 
 
                     cells[nextCell].classList.add('frightened');
-                    //prevCell = ghost.currentCell;
                     ghost.currentCell = nextCell;
 
                     nextCell = findNextCell(ghost.direction, ghost.currentCell)
 
                 } else {
                     console.log("direction before fail: " + ghost.direction)
-                    console.log("CELL BEFORE FAIL: " + ghost.currentCell)
-                    console.log("FAILED VALIDITY " + nextCell)
+                    console.log("ghost: " + ghost.name);
+                    console.log("frightened? " + ghost.frightened);
+
+                    console.log("CELL BEFORE FAIL: " + ghost.currentCell);
+                    console.log("FAILED VALIDITY " + nextCell);
                 }
 
 
 
             }, ghost.speed);
-
+            arrIntervals.push(ghost.interval);
             timeout = setTimeout(() => {
                 cells[ghost.currentCell].classList.remove("frightened");
                 clearInterval(ghost.interval);
+                frightenedAudio.pause();
+
                 if (ghost.currentCell === ghost.homeCell) {
                     leaveHome(ghost);
                 } else {
@@ -587,6 +617,13 @@ function frighten() {
             )
         }
     })
+
+    setTimeout(() => {
+        chompAudioInterval = setInterval(() => {
+            chompAudio.play();
+        }, chompAudio.duration)
+    }, 6000)
+    arrIntervals.push(chompAudioInterval);
 
 }
 
@@ -994,6 +1031,15 @@ function leaveHome(ghost) {
 
 }
 function handleStart(e) {
+    startAudio.play();
+    timeouts.push(setTimeout(() => {
+        chompAudioInterval = setInterval(() => {
+            chompAudio.play()
+
+        }, chompAudio.duration)
+
+    }, 4000))
+    arrIntervals.push(chompAudioInterval);
     startingHtml = container.innerHTML;
     container.innerHTML = "";
     setUp()
@@ -1006,37 +1052,86 @@ function handleStart(e) {
     scoreBox.style.margin = "0";
     container.style.flexDirection = "row";
     body.insertBefore(scoreBox, container)
-    // setTimeout(() => pacmanMove(3), 1000)
-    setTimeout(() => chase(blinky, blinky.startDirection), 1000);
-    setTimeout(() => {
+    timeouts.push(setTimeout(() => {
+        pacmanMove(3);
+        document.addEventListener('keydown', handleKeyDown);
+    }, 4000))
+    timeouts.push(setTimeout(() => chase(blinky, blinky.startDirection), 4000));
+    timeouts.push(setTimeout(() => {
         leaveHome(pinky)
-    }, 1000);
-    setTimeout(() => {
+    }, 5000));
+    timeouts.push(setTimeout(() => {
         leaveHome(inky)
-    }, 4000)
-    setTimeout(() => {
+    }, 8000));
+    timeouts.push(setTimeout(() => {
         leaveHome(clyde);
-    }, 8000);
+    }, 12000));
 
-
+    console.log(startingFood)
 }
 
 function updateScore() {
     scoreBox.innerText = `Score: ${score}`
 }
 
-function gameOver() {
-    console.log("GAMEOVER")
+
+function levelComplete() {
+    lost = 0;
     ghosts.forEach(ghost => {
-        ghost.interval = undefined;
+        ghost.speed *= 0.95
+        if (ghost.speed <= pacmanSpeed) {
+            ghost.speed = pacmanSpeed;
+        }
     })
+
+    gameOver()
+}
+function gameOver() {
+    console.log("Timeouts: " + timeouts);
+    timeouts.forEach(t => {
+        clearTimeout(t)
+    })
+    timeouts = [];
+    console.log("Intervals: " + arrIntervals);
+    arrIntervals.forEach(i => {
+        clearInterval(i);
+
+    })
+    arrIntervals = [];
+    clearInterval(chompAudioInterval);
+    frightenedAudio.pause();
+
+    const pGameOver = document.createElement('p');
+    const p = document.createElement('p');
+    restartButton = document.createElement('button');
+
+    if (lost) {
+        console.log("GAMEOVER")
+        pGameOver.innerText = "GAME OVER"
+        p.innerText = `Final Score: ${score}`;
+        restartButton.innerText = "PLAY AGAIN";
+        deadAudio.play();
+    } else {
+        console.log("LEVEL COMPLETE")
+        pGameOver.innerText = "LEVEL COMPLETE"
+        p.innerText = `Level Score: ${score}`;
+        restartButton.innerText = "NEXT LEVEL";
+        winAudio.play();
+    }
+
+    ghosts.forEach(ghost => {
+        clearInterval(ghost.interval);
+        ghost.interval = undefined;
+        ghost.frightened = 0;
+    })
+    clearInterval(pacmanInterval)
     pacmanInterval = undefined;
     document.removeEventListener("keydown", handleKeyDown)
     container.innerHTML = ""
-    body.removeChild(scoreBox);
+    if (scoreBox) {
+        body.removeChild(scoreBox);
+    }
     container.style.backgroundColor = "black";
-    const pGameOver = document.createElement('p');
-    pGameOver.innerText = "GAME OVER"
     pGameOver.style.color = "yellow";
     pGameOver.style.fontSize = "1.5rem";
     pGameOver.style.fontFamily = "Arcade-R";
@@ -1044,8 +1139,8 @@ function gameOver() {
     pGameOver.style.height = "100px";
     pGameOver.style.margin = "3rem auto";
     container.append(pGameOver);
-    const p = document.createElement('p');
-    p.innerText = `Final Score: ${score}`;
+
+
     p.style.color = "white";
     p.style.fontSize = "1.5rem";
     p.style.fontFamily = "Arcade-R";
@@ -1053,18 +1148,45 @@ function gameOver() {
     p.style.margin = "2rem auto";
     p.style.height = "100px"
     container.append(p)
+
+    let pHighScore = document.createElement('p');
+    pHighScore.style.color = "white";
+    pHighScore.style.fontSize = "1.5rem";
+    pHighScore.style.fontFamily = "Arcade-R";
+    pHighScore.style.textShadow = "-1px -1px lightgrey";
+    pHighScore.style.margin = "2rem auto";
+    pHighScore.style.height = "100px"
+    let highScore = localStorage.getItem("highScore");
+    console.log("highscore: " + highScore);
+    if (highScore) {
+        if (score < Number(highScore)) {
+            pHighScore.innerText = `High Score: ${highScore}`;
+        } else {
+            highScore = score;
+            pHighScore.innerText = `NEW High Score!`;
+            localStorage.setItem('highScore', score);
+        }
+    } else {
+        pHighScore.innerText = `NEW High Score!!!!`;
+        localStorage.setItem('highScore', score);
+
+    }
+
+    container.append(pHighScore)
+
     container.style.flexDirection = "column"
-    restartButton = document.createElement('button');
     restartButton.classList.add('restart-button');
-    restartButton.innerText = "PLAY AGAIN"
+
     container.append(restartButton);
     restartButton.addEventListener("click", restart)
+
+
+
 
 }
 
 
 function restart() {
-    console.log("gamestate after restart: " + gameState)
     container.innerHTML = startingHtml;
     startButton = document.querySelector(".start-button")
     startButton.addEventListener("click", handleStart)
@@ -1074,11 +1196,18 @@ function restart() {
     ghosts.forEach(ghost => {
         ghost.direction = ghost.startDirection;
         ghost.currentCell = ghost.startingCell;
+        ghost.frightened = 0;
+        clearInterval(ghost.interval);
+        ghost.interval = undefined;
+
     });
     startingFood = 0;
     foodEaten = 0;
-    score = 0;
+    if (lost) {
+        score = 0;
+    }
     validCells = [];
     prevNode = undefined;
 
 }
+
