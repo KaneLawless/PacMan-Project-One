@@ -26,7 +26,8 @@ body {
     height: 599.94px;
     margin: 0 auto;
     display: flex;
-    flex-wrap: wrap
+    flex-direction: column;
+    flex-wrap: wrap;
 }
 
 .logo {
@@ -37,11 +38,17 @@ body {
 
 }
 
+.pacman-start {
+    height: 20%;
+    width: 20%;
+    margin: 0 auto;
+}
+
 .start-button {
     background-color: lightgrey;
     width: 200px;
     height: 50px;
-    margin: 0 auto;
+    margin: 4rem auto;
     font-family: 'Arcade-R';
     text-shadow: -1px -1px black;
     color: grey;

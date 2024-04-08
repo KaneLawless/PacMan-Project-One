@@ -45,16 +45,16 @@ const blinkyStart = 110;
 const blinkyScatterCell = 19;
 
 const pinkySpeed = 300;
-const pinkyStart = 155;
+const pinkyStart = 172;
 const pinkyScatterCell = 34;
 
 const clydeSpeed = 300
-const clydeStart = 150;
+const clydeStart = 118;
 const clydeScatterCell = 289;
 
 const inkySpeed = 300;
 const inkyStart = 115;
-const inkyScatterCell = 322;
+const inkyScatterCell = 304;
 
 
 let startingFood = 0;
@@ -137,9 +137,9 @@ const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', p
 
 const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 1);
 
-const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 3);
+const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 1);
 
-let ghosts = [blinky, pinky, clyde]
+let ghosts = [blinky, pinky, clyde, inky]
 
 function setUp() {
     container.style.backgroundColor = "white";
@@ -177,7 +177,7 @@ function setUp() {
             cell.style.border = "1px solid black";
         }
 
-        // Add power ups to designated cells
+        //Add power ups to designated cells
         if (powerUpCells.includes(i)) {
             cell.classList.add('power-up');
         }
@@ -254,6 +254,7 @@ function pacmanMove(direction) {
                 cells[nextCell].classList.remove('power-up');
                 score += 250;
                 updateScore();
+
                 frighten()
             } else if (cells[nextCell].classList.contains('food')) {
                 cells[nextCell].classList.remove('food');
@@ -410,8 +411,7 @@ startButton.addEventListener("click", handleStart)
 
 // callback function for blinky.chase
 function chase(ghost, direction) {
-    console.log("chase started for : " + ghost.name)
-    console.log(ghost.currentCell)
+
     gameState = 0;
     let prevCell = ghost.currentCell;
     let hadFood;
@@ -433,16 +433,13 @@ function chase(ghost, direction) {
             const target = calcTargetCell(ghost);
             const bestNode = astar(`n${index}`, target)
             const [c, d] = nextCellComplex(direction, index, bestNode);
-            console.log(ghost.name + "current cell: " + ghost.currentCell)
-            console.log("Next cell for " + ghost.name + ": " + c)
-            console.log(ghost)
+
             nextCell = c;
             direction = d;
         } else {
-            console.log(ghost.name + " got here")
-            console.log(ghost.name + " direction: " + direction)
+
             nextCell = findNextCell(direction, ghost.currentCell);
-            console.log(ghost.name + " next cell: " + nextCell)
+
 
         }
 
@@ -502,92 +499,94 @@ function chase(ghost, direction) {
 
 function frighten() {
     gameState = 1;
+
     ghosts.forEach((ghost) => {
-        if (ghost.direction === 0) {
-            ghost.direction = 2;
-        } else if (ghost.direction === 1) {
-            ghost.direction = 3;
-        } else if (ghost.direction === 2) {
-            ghost.direction = 0;
-        } else {
-            ghost.direction = 1
-        }
-
-        let hadFood;
-        let hadPowerUp;
-        let prevCell;
-        clearInterval(ghost.interval);
-        ghost.interval = setInterval(() => {
-
-
-            let nextCell = findNextCell(ghost.direction, ghost.currentCell);
-            if (nodeCells.includes(nextCell)) {
-                let rand = Math.floor(Math.random() * 4);
-                while (!(isValidCell(findNextCell(rand, nextCell)))) {
-                    rand = Math.floor(Math.random() * 4);
-                }
-                ghost.direction = rand;
-            }
-
-            if (isValidCell(nextCell)) {
-
-                if (hadFood) {
-                    if (validCells.includes(prevCell)) {
-                        cells[prevCell].classList.add('food');
-                    }
-                    hadFood = false;
-                }
-
-                if (hadPowerUp) {
-                    cells[prevCell].classList.add('power-up');
-                    hadPowerUp = false;
-                }
-
-                cells[ghost.currentCell].classList.remove('frightened');
-                cells[ghost.currentCell].classList.remove(ghost.cssClass);
-
-                if (cells[nextCell].classList.contains('food')) {
-                    cells[nextCell].classList.remove('food');
-                    hadFood = true;
-                } else if (cells[nextCell].classList.contains('power-up')) {
-                    cells[nextCell].classList.remove('power-up');
-                    hadPowerUp = true;
-
-                }
-
-
-                cells[nextCell].classList.add('frightened');
-                prevCell = ghost.currentCell;
-                ghost.currentCell = nextCell;
-
-                nextCell = findNextCell(ghost.direction, ghost.currentCell)
-                // if (cells[currentPacmanCell].classList.contains(ghost.cssClass)) {
-                //     clearInterval(ghost.interval);
-                //     cells[ghost.currentCell].classList.remove('frightened');
-                //     ghost.currentCell = ghost.startingCell;
-                //     ghost.direction = ghost.startDirection;
-                //     cells[ghost.startingCell].classList.add(ghost.cssClass);
-                //     score += 1000
-                //     setTimeout(() => chase(ghost, ghost.startDirection), 1000)
-
-                // }
+        if (ghost.interval) {
+            if (ghost.direction === 0) {
+                ghost.direction = 2;
+            } else if (ghost.direction === 1) {
+                ghost.direction = 3;
+            } else if (ghost.direction === 2) {
+                ghost.direction = 0;
             } else {
-                console.log("direction before fail: " + ghost.direction)
-                console.log("CELL BEFORE FAIL: " + ghost.currentCell)
-                console.log("FAILED VALIDITY " + nextCell)
+                ghost.direction = 1
             }
 
-
-
-        }, ghost.speed);
-
-        timeout = setTimeout(() => {
-            cells[ghost.currentCell].classList.remove("frightened");
+            let hadFood;
+            let hadPowerUp;
+            let prevCell;
             clearInterval(ghost.interval);
-            chase(ghost, ghost.direction)
-        }, 6000
-        )
+            ghost.interval = setInterval(() => {
 
+                prevCell = ghost.currentCell;
+                let nextCell = findNextCell(ghost.direction, ghost.currentCell);
+                if (nodeCells.includes(nextCell)) {
+                    let rand = Math.floor(Math.random() * 4);
+                    while (!(isValidCell(findNextCell(rand, nextCell)))) {
+                        rand = Math.floor(Math.random() * 4);
+                    }
+                    ghost.direction = rand;
+                }
+
+                if (isValidCell(nextCell)) {
+
+                    if (hadFood) {
+                        if (validCells.includes(prevCell)) {
+                            cells[prevCell].classList.add('food');
+                        }
+                        hadFood = false;
+                    }
+
+                    if (hadPowerUp) {
+                        cells[prevCell].classList.add('power-up');
+                        hadPowerUp = false;
+                    }
+
+                    cells[ghost.currentCell].classList.remove('frightened');
+                    cells[ghost.currentCell].classList.remove(ghost.cssClass);
+
+                    if (cells[nextCell].classList.contains('food')) {
+                        cells[nextCell].classList.remove('food');
+                        hadFood = true;
+                    } else if (cells[nextCell].classList.contains('power-up')) {
+                        cells[nextCell].classList.remove('power-up');
+                        hadPowerUp = true;
+
+                    }
+
+
+                    cells[nextCell].classList.add('frightened');
+                    //prevCell = ghost.currentCell;
+                    ghost.currentCell = nextCell;
+
+                    nextCell = findNextCell(ghost.direction, ghost.currentCell)
+                    if (cells[currentPacmanCell].classList.contains(ghost.cssClass)) {
+                        clearInterval(ghost.interval);
+                        cells[ghost.currentCell].classList.remove('frightened');
+                        ghost.currentCell = ghost.startingCell;
+                        ghost.direction = ghost.startDirection;
+                        cells[ghost.startingCell].classList.add(ghost.cssClass);
+                        score += 1000
+                        setTimeout(() => chase(ghost, ghost.startDirection), 1000)
+
+                    }
+                } else {
+                    console.log("direction before fail: " + ghost.direction)
+                    console.log("CELL BEFORE FAIL: " + ghost.currentCell)
+                    console.log("FAILED VALIDITY " + nextCell)
+                }
+
+
+
+            }, ghost.speed);
+
+            timeout = setTimeout(() => {
+                cells[ghost.currentCell].classList.remove("frightened");
+                clearInterval(ghost.interval);
+                chase(ghost, ghost.direction)
+            }, 6000
+            )
+        }
     })
 
 }
@@ -654,6 +653,16 @@ function calcTargetCell(ghost) {
             targetCell = currentPacmanCell;
         } else {
             targetCell = clyde.scatterCell;
+        }
+    }
+
+    if (ghost === inky) {
+        // alternate betwen random cell and pacman cell
+        const rand = Math.floor(Math.random() * 2);
+        if (rand === 0) {
+            targetCell = currentPacmanCell;
+        } else {
+            targetCell = Math.floor(Math.Random() * cells.length);
         }
     }
 
@@ -913,7 +922,42 @@ function calcHeuristicVal(node, target) {
     return Math.sqrt(h2);
 }
 
-
+function leaveHome(ghost) {
+    if (ghost === pinky) {
+        setTimeout(() => {
+            cells[pinky.currentCell].classList.remove(pinky.cssClass);
+            cells[154].classList.add(pinky.cssClass);
+            pinky.currentCell = 154;
+            setTimeout(() => {
+                cells[pinky.currentCell].classList.remove(pinky.cssClass);
+                cells[155].classList.add(pinky.cssClass);
+                pinky.currentCell = 155;
+            }, pinky.speed)
+        }, pinky.speed)
+        setTimeout(() => {
+            chase(pinky, pinky.startDirection);
+        }, pinky.speed * 2);
+    } else if (ghost === clyde) {
+        setTimeout(() => {
+            cells[clyde.currentCell].classList.remove(clyde.cssClass);
+            cells[136].classList.add(clyde.cssClass);
+            clyde.currentCell = 136;
+            setTimeout(() => {
+                cells[clyde.currentCell].classList.remove(clyde.cssClass);
+                cells[154].classList.add(clyde.cssClass);
+                clyde.currentCell = 154;
+                setTimeout(() => {
+                    cells[clyde.currentCell].classList.remove(clyde.cssClass);
+                    cells[155].classList.add(clyde.cssClass);
+                    clyde.currentCell = 155;
+                }, clyde.speed);
+            }, clyde.speed);
+        }, clyde.speed);
+        setTimeout(() => {
+            chase(clyde, clyde.startDirection);
+        }, clyde.speed * 3)
+    }
+}
 function handleStart(e) {
     startingHtml = container.innerHTML;
     container.innerHTML = "";
@@ -925,11 +969,18 @@ function handleStart(e) {
     scoreBox.style.fontFamily = "Arcade-R";
     scoreBox.style.textShadow = "-1px -1px lightgrey";
     scoreBox.style.margin = "0";
+    container.style.flexDirection = "row";
     body.insertBefore(scoreBox, container)
-    setTimeout(() => pacmanMove(3), 1000)
+    // setTimeout(() => pacmanMove(3), 1000)
     setTimeout(() => chase(blinky, blinky.startDirection), 1000);
-    setTimeout(() => chase(pinky, pinky.startDirection), 1000);
-    setTimeout(() => chase(clyde, clyde.startDirection), 1000);
+    setTimeout(() => {
+        leaveHome(pinky)
+    }, 1000);
+    setTimeout(() => {
+
+        leaveHome(clyde);
+    }, 3000);
+
 
 }
 
@@ -943,13 +994,22 @@ function gameOver() {
     container.innerHTML = ""
     body.removeChild(scoreBox);
     container.style.backgroundColor = "black";
+    const pGameOver = document.createElement('p');
+    pGameOver.innerText = "GAME OVER"
+    pGameOver.style.color = "yellow";
+    pGameOver.style.fontSize = "1.5rem";
+    pGameOver.style.fontFamily = "Arcade-R";
+    pGameOver.style.textShadow = "-1px -1px yellow";
+    pGameOver.style.height = "100px";
+    pGameOver.style.margin = "3rem auto";
+    container.append(pGameOver);
     const p = document.createElement('p');
     p.innerText = `Final Score: ${score}`;
     p.style.color = "white";
     p.style.fontSize = "1.5rem";
     p.style.fontFamily = "Arcade-R";
     p.style.textShadow = "-1px -1px lightgrey";
-    p.style.margin = "5rem auto";
+    p.style.margin = "2rem auto";
     p.style.height = "100px"
     container.append(p)
     container.style.flexDirection = "column"
@@ -966,7 +1026,7 @@ function restart() {
     container.innerHTML = startingHtml;
     startButton = document.querySelector(".start-button")
     startButton.addEventListener("click", handleStart)
-    container.style.flexDirection = "row";
+    container.style.flexDirection = "column";
     cells = [];
     currentPacmanCell = startingCell;
     ghosts.forEach(ghost => {
