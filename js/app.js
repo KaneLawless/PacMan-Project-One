@@ -27,7 +27,7 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-
+let pacmanClasses = ["pacman-up", "pacman-left", "pacman-right", "pacman-down"]
 let startingHtml;
 let scoreBox;
 let restartButton;
@@ -106,7 +106,7 @@ nodes.n304 = new Node(304, { n268: 0, n289: 0 });
 
 // Ghost class for storing variables and chase, frightened and scatter movement methods
 class Ghost {
-    constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection) {
+    constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection, homeCell) {
         this.name = name;
         this.speed = speed;
         this.startingCell = startingCell;
@@ -116,6 +116,7 @@ class Ghost {
         this.currentCell = startingCell;
         this.startDirection = startDirection
         this.direction = startDirection;
+        this.homeCell = homeCell;
 
     }
     interval;
@@ -131,13 +132,13 @@ const Chase = {
 };
 
 // Ghost objects
-const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1);
+const blinky = new Ghost('blinky', blinkySpeed, blinkyStart, Chase.blinky, 'blinky', blinkyScatterCell, 1, 169);
 
-const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1);
+const pinky = new Ghost('pinky', pinkySpeed, pinkyStart, Chase.pinky, 'pinky', pinkyScatterCell, 1, pinkyStart);
 
-const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 1);
+const inky = new Ghost('inky', inkySpeed, inkyStart, Chase.inky, 'inky', inkyScatterCell, 3, inkyStart);
 
-const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 1);
+const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', clydeScatterCell, 1, clydeStart);
 
 let ghosts = [blinky, pinky, clyde, inky]
 
@@ -287,13 +288,16 @@ function pacmanMove(direction) {
                 if (cells[ghost.currentCell].classList.contains(relevantClass)) {
                     clearInterval(ghost.interval);
                     cells[ghost.currentCell].classList.remove('frightened');
-                    ghost.currentCell = ghost.startingCell;
+                    ghost.currentCell = ghost.homeCell;
                     ghost.direction = ghost.startDirection;
-                    cells[ghost.startingCell].classList.add(ghost.cssClass);
+                    cells[ghost.homeCell].classList.add(ghost.cssClass);
                     score += 500;
-                    updateScore()
+                    updateScore();
                 }
+
+
             })
+
         }
 
 
@@ -560,16 +564,7 @@ function frighten() {
                     ghost.currentCell = nextCell;
 
                     nextCell = findNextCell(ghost.direction, ghost.currentCell)
-                    if (cells[currentPacmanCell].classList.contains(ghost.cssClass)) {
-                        clearInterval(ghost.interval);
-                        cells[ghost.currentCell].classList.remove('frightened');
-                        ghost.currentCell = ghost.startingCell;
-                        ghost.direction = ghost.startDirection;
-                        cells[ghost.startingCell].classList.add(ghost.cssClass);
-                        score += 1000
-                        setTimeout(() => chase(ghost, ghost.startDirection), 1000)
 
-                    }
                 } else {
                     console.log("direction before fail: " + ghost.direction)
                     console.log("CELL BEFORE FAIL: " + ghost.currentCell)
@@ -583,7 +578,11 @@ function frighten() {
             timeout = setTimeout(() => {
                 cells[ghost.currentCell].classList.remove("frightened");
                 clearInterval(ghost.interval);
-                chase(ghost, ghost.direction)
+                if (ghost.currentCell === ghost.homeCell) {
+                    leaveHome(ghost);
+                } else {
+                    chase(ghost, ghost.direction)
+                }
             }, 6000
             )
         }
@@ -662,7 +661,7 @@ function calcTargetCell(ghost) {
         if (rand === 0) {
             targetCell = currentPacmanCell;
         } else {
-            targetCell = Math.floor(Math.Random() * cells.length);
+            targetCell = Math.floor(Math.random() * cells.length);
         }
     }
 
@@ -956,7 +955,43 @@ function leaveHome(ghost) {
         setTimeout(() => {
             chase(clyde, clyde.startDirection);
         }, clyde.speed * 3)
+    } else if (ghost === blinky) {
+        setTimeout(() => {
+            cells[blinky.currentCell].classList.remove(blinky.cssClass);
+            cells[151].classList.add(blinky.cssClass);
+            blinky.currentCell = 151;
+            setTimeout(() => {
+                cells[blinky.currentCell].classList.remove(blinky.cssClass);
+                cells[150].classList.add(blinky.cssClass);
+                blinky.currentCell = 150;
+            }, blinky.speed)
+        }, blinky.speed);
+        setTimeout(() => {
+            chase(blinky, 3)
+        }, blinky.speed * 2)
+    } else if (ghost === inky) {
+        setTimeout(() => {
+            cells[inky.currentCell].classList.remove(inky.cssClass);
+            cells[133].classList.add((inky.cssClass));
+            inky.currentCell = 133;
+            setTimeout(() => {
+                cells[inky.currentCell].classList.remove(inky.cssClass);
+                cells[151].classList.add(inky.cssClass);
+                inky.currentCell = 151;
+                setTimeout(() => {
+                    cells[inky.currentCell].classList.remove(inky.cssClass);
+                    cells[150].classList.add(inky.cssClass);
+                    inky.currentCell = 150;
+                }, inky.speed)
+            }, inky.speed);
+
+        }, blinky.speed);
+        setTimeout(() => {
+            chase(inky, inky.startDirection)
+        }, inky.speed * 3);
     }
+
+
 }
 function handleStart(e) {
     startingHtml = container.innerHTML;
@@ -977,9 +1012,11 @@ function handleStart(e) {
         leaveHome(pinky)
     }, 1000);
     setTimeout(() => {
-
+        leaveHome(inky)
+    }, 4000)
+    setTimeout(() => {
         leaveHome(clyde);
-    }, 3000);
+    }, 8000);
 
 
 }
@@ -990,6 +1027,10 @@ function updateScore() {
 
 function gameOver() {
     console.log("GAMEOVER")
+    ghosts.forEach(ghost => {
+        ghost.interval = undefined;
+    })
+    pacmanInterval = undefined;
     document.removeEventListener("keydown", handleKeyDown)
     container.innerHTML = ""
     body.removeChild(scoreBox);
@@ -1023,6 +1064,7 @@ function gameOver() {
 
 
 function restart() {
+    console.log("gamestate after restart: " + gameState)
     container.innerHTML = startingHtml;
     startButton = document.querySelector(".start-button")
     startButton.addEventListener("click", handleStart)
@@ -1036,6 +1078,7 @@ function restart() {
     startingFood = 0;
     foodEaten = 0;
     score = 0;
-    validCells = [],
-        prevNode = undefined;
+    validCells = [];
+    prevNode = undefined;
+
 }
