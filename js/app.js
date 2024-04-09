@@ -1,4 +1,4 @@
-// Game container and start button
+// Elements 
 const container = document.querySelector('.container');
 const body = document.querySelector("body")
 let startButton = document.querySelector(".start-button")
@@ -9,9 +9,11 @@ let deadAudio = document.getElementById('dead');
 let winAudio = document.getElementById('win');
 let eatGhostAudio = document.getElementById('eat-ghost')
 
-// Initialising variables
+// Audio intervals
 let chompAudioInterval;
 let frightenedInterval;
+
+// Grid variables
 const cols = 18;
 const rows = 18;
 const cellCount = cols * rows;
@@ -34,25 +36,28 @@ const corners = [19, 25, 28, 34, 109, 113, 120, 124, 199, 205, 208, 214, 241, 24
 const nodeCells = corners.concat(decisionCells);
 let validCells = [];
 let cells = [];
-let pacmanClasses = ["pacman-up", "pacman-left", "pacman-right", "pacman-down"]
+
+// For re-establishing the start page after restart and on end game
 let startingHtml;
 let scoreBox;
 let restartButton;
+
+// Flag to enable gameover function to be used in both win and lose situations
+let lost = 1;
+
+// Player variables
 const startingCell = 205;
 let currentPacmanCell = startingCell;
 const pacmanSpeed = 200;
 let pacmanDirection;
 let pacmanInterval;
+let score = 0;
 
+// Variables holding all intervals and timeouts to clear them when game is over
 let timeouts = [];
 let arrIntervals = [];
 
-
-let score = 0;
-
-let lost = 1;
-
-
+// Ghost starting variables
 const blinkySpeed = 300;
 const blinkyStart = 110;
 const blinkyScatterCell = 19;
@@ -69,14 +74,14 @@ const inkySpeed = 300;
 const inkyStart = 115;
 const inkyScatterCell = 304;
 
-
+// For handling winning the game
 let startingFood = 0;
 let foodEaten = 0;
+
+// For pathfinder to ignore the the previous node when considering connecting nodes
 let prevNode;
-let gameState = 0;
 
-
-
+// Set up for pathfinder nodes
 class Node {
     constructor(index, connectedNodes) {
         this.connectedNodes = connectedNodes;
@@ -85,7 +90,7 @@ class Node {
 
 }
 
-const nodes = {} // array containing the Node objects
+const nodes = {}
 
 nodes.n19 = new Node(19, { n25: 0, n73: 0 });
 nodes.n25 = new Node(25, { n19: 0, n79: 0 });
@@ -117,7 +122,7 @@ nodes.n289 = new Node(289, { n253: 0, n304: 0 });
 nodes.n304 = new Node(304, { n268: 0, n289: 0 });
 
 
-// Ghost class for storing variables and chase, frightened and scatter movement methods
+// Ghost construction storing useful properties
 class Ghost {
     constructor(name, speed, startingCell, chase, cssClass, scatterCell, startDirection, homeCell, frightened) {
         this.name = name;
@@ -156,10 +161,14 @@ const clyde = new Ghost('clyde', clydeSpeed, clydeStart, Chase.clyde, 'clyde', c
 
 let ghosts = [blinky, pinky, inky, clyde]
 
+// Start game button handler
 startButton.addEventListener("click", handleStart)
 
+
 function setUp() {
+    // style container
     container.style.backgroundColor = "white";
+
     // Create grid
     for (i = 0; i < cellCount; i++) {
 
@@ -168,13 +177,14 @@ function setUp() {
         cell.style.height = `${100 / rows}%`;
         cell.style.width = `${100 / cols}%`;
 
-
+        // Data for indexing
         cell.dataset.index = i;
         cell.dataset.col = i % cols;
         cell.dataset.row = Math.floor(i / cols);
 
         //cell.innerText = i;
 
+        // append cell to grid
         container.append(cell);
 
 
@@ -195,9 +205,9 @@ function setUp() {
         }
 
         //Add power ups to designated cells
-        // if (powerUpCells.includes(i)) {
-        //     cell.classList.add('power-up');
-        // }
+        if (powerUpCells.includes(i)) {
+            cell.classList.add('power-up');
+        }
         // Place pacman to start
         if (i === startingCell) {
             cell.classList.remove('food');
@@ -205,6 +215,7 @@ function setUp() {
             cell.classList.add('pacman-left');
         };
 
+        // Add ghosts to start cells
         ghosts.forEach((ghost) => {
             if (i === ghost.startingCell) {
                 cell.classList.add(ghost.cssClass);;
@@ -216,7 +227,7 @@ function setUp() {
     }
 
 
-    // calc direction between nodes.
+    // calc distance between nodes.
     for (i = 0; i < Object.keys(nodes).length; i++) {
         const nodeId = Object.keys(nodes)[i]
         const index = nodes[nodeId].index;
@@ -240,26 +251,19 @@ function setUp() {
             nodes[nodeId].connectedNodes[cellId] = distance;
         }
     }
-
-    console.log(nodes);
-
-
-    startButton.addEventListener("click", handleStart)
-
-
-    ghosts.forEach((ghost) => {
-        console.log(ghost)
-
-    })
 }
+
+
 // Moves pacman in current direction
 function pacmanMove(direction) {
     // Finds correct image class 
     const relevantClass = findDirectionClass(direction);
-    // Moves pacman at {pacmanSpeed} speed
+
+    // clear any running interval
     if (pacmanInterval) {
         clearInterval(pacmanInterval)
     }
+
     pacmanInterval = setInterval(() => {
         // Finds the next cell to move to
         let nextCell = findNextCell(direction, currentPacmanCell);
@@ -270,10 +274,11 @@ function pacmanMove(direction) {
                 cells[currentPacmanCell].classList.remove(relevantClass);
             }
 
-
+            // Adds pacman to next cell
             cells[nextCell].classList.add(relevantClass);
             currentPacmanCell = nextCell;
 
+            // Handle power up -> enter frightened mode, handle food eating
             if (cells[nextCell].classList.contains('power-up')) {
                 cells[nextCell].classList.remove('power-up');
                 score += 250;
@@ -286,7 +291,7 @@ function pacmanMove(direction) {
                 foodEaten++;
                 score += 100;
                 updateScore()
-                console.log("Food eaten: " + foodEaten)
+                // Win condition
                 if (foodEaten === startingFood) {
                     levelComplete();
                 }
@@ -294,7 +299,7 @@ function pacmanMove(direction) {
 
         }
 
-
+        // Lose condition if ghost collision when not frightened, clear running intervals
         ghosts.forEach(ghost => {
             if (ghost.frightened === 0) {
                 if (cells[ghost.currentCell].classList.contains(relevantClass)) {
@@ -308,7 +313,7 @@ function pacmanMove(direction) {
             }
         })
 
-
+        // Handle frightened mode collision
         ghosts.forEach(ghost => {
             if (ghost.frightened === 1) {
                 if (cells[ghost.currentCell].classList.contains(relevantClass)) {
@@ -322,8 +327,6 @@ function pacmanMove(direction) {
                     updateScore();
                 }
             }
-
-
         })
     }, pacmanSpeed);
 };
@@ -365,7 +368,6 @@ function findNextCell(direction, currentCell) {
     }
     // Error
     else {
-        console.log()
         console.log("Error in cell calculation");
 
     }
@@ -426,25 +428,20 @@ function handleKeyDown(e) {
 }
 
 
-// Keydown event listener
-// let keydownListener = document.addEventListener('keydown', handleKeyDown);
-
-
-
-
-// callback function for blinky.chase
+// Chase function
 function chase(ghost, direction) {
 
+    // Frightened mode === 1, if Chase === 0
     ghost.frightened = 0;
-    let prevCell = ghost.currentCell;
-    let hadFood;
-    let hadPowerUp;
 
-    // Move - starting direction right (1)
+    let prevCell = ghost.currentCell;
+    // clear previous intervals
     if (ghost.interval) {
         clearInterval(ghost.interval);
     }
+
     ghost.interval = setInterval(() => {
+
         ghost.direction = direction;
         prevCell = ghost.currentCell;
         let nextCell;
@@ -454,50 +451,28 @@ function chase(ghost, direction) {
             const [d, n] = handleCorners(direction, ghost);
             nextCell = n;
             direction = d;
-        } else if (nodeCells.includes(prevCell)) {
+        } // Handles decision cells (nodes)
+        else if (nodeCells.includes(prevCell)) {
             const index = prevCell;
             const target = calcTargetCell(ghost);
-            const bestNode = astar(`n${index}`, target)
+            const bestNode = pathfinder(`n${index}`, target)
             const [c, d] = nextCellComplex(direction, index, bestNode);
 
             nextCell = c;
             direction = d;
         } else {
-
+            // Straight line next cell calc
             nextCell = findNextCell(direction, ghost.currentCell);
-
-
         }
 
 
         if (isValidCell(nextCell)) {
-
-            // replace food and power ups after blinky passed through
-            // if (hadFood) {
-            //     if (validCells.includes(prevCell)) {
-            //         cells[prevCell].classList.add('food');
-            //     }
-            //     hadFood = false;
-            // }
-
-            // if (hadPowerUp) {
-            //     cells[prevCell].classList.add('power-up');
-            //     hadPowerUp = false;
-            // }
-
+            // Move ghost image and update variables
             cells[ghost.currentCell].classList.remove(ghost.cssClass);
-
-            // if (cells[nextCell].classList.contains('food')) {
-            //     cells[nextCell].classList.remove('food');
-            //     hadFood = true;
-            // } else if (cells[nextCell].classList.contains('power-up')) {
-            //     cells[nextCell].classList.remove('power-up');
-            //     hadPowerUp = true;
-            // }
-
             cells[nextCell].classList.add(ghost.cssClass);
             ghost.currentCell = nextCell;
             ghost.direction = direction
+            // Another collision handler to increase chance of catching the collision
             if (ghost.frightened !== 1) {
                 if (ghost.currentCell === currentPacmanCell) {
                     // game over
@@ -509,29 +484,27 @@ function chase(ghost, direction) {
                 }
             }
         } else {
-            // console.log("FAILED VALIDITY")
-            // console.log("direction:" + ghost.direction)
-            // console.log("current cell: " + ghost.currentCell)
-            // console.log("next cell: " + nextCell)
-            // console.log("ghost:" + ghost.name)
+            console.log("FAILED VALIDITY")
         }
 
     }, ghost.speed);
+    // keep track of interval
     arrIntervals.push(ghost.interval)
 
 };
 
 
-
+// Frightened mode handler
 function frighten() {
 
     ghosts.forEach((ghost) => {
         if (ghost.interval && !homeCells.includes(ghost.currentCell)) {
+            // reset timeout if a second power up was eaten during frightened mode
             if (ghost.frightened === 1) {
                 clearTimeout(timeout)
-
             }
             ghost.frightened = 1;
+            // Reverse direction
             if (ghost.direction === 0) {
                 ghost.direction = 2;
             } else if (ghost.direction === 1) {
@@ -542,13 +515,11 @@ function frighten() {
                 ghost.direction = 1
             }
 
-            let hadFood;
-            let hadPowerUp;
             let prevCell;
             clearInterval(ghost.interval);
             ghost.interval = setInterval(() => {
-
                 prevCell = ghost.currentCell;
+                // Find next cell, handle decision cells by choosing a random direction, if valid
                 let nextCell = findNextCell(ghost.direction, ghost.currentCell);
                 if (nodeCells.includes(nextCell)) {
                     let rand = Math.floor(Math.random() * 4);
@@ -559,31 +530,9 @@ function frighten() {
                 }
 
                 if (isValidCell(nextCell)) {
-
-                    // if (hadFood) {
-                    //     if (validCells.includes(prevCell)) {
-                    //         cells[prevCell].classList.add('food');
-                    //     }
-                    //     hadFood = false;
-                    // }
-
-                    // if (hadPowerUp) {
-                    //     cells[prevCell].classList.add('power-up');
-                    //     hadPowerUp = false;
-                    // }
-
+                    // remove ghost from prev cell and add to new
                     cells[ghost.currentCell].classList.remove('frightened');
                     cells[ghost.currentCell].classList.remove(ghost.cssClass);
-
-                    // if (cells[nextCell].classList.contains('food')) {
-                    //     //cells[nextCell].classList.remove('food');
-                    //     hadFood = true;
-                    // } else if (cells[nextCell].classList.contains('power-up')) {
-                    //     //cells[nextCell].classList.remove('power-up');
-                    //     hadPowerUp = true;
-
-                    // }
-
 
                     cells[nextCell].classList.add('frightened');
                     ghost.currentCell = nextCell;
@@ -591,18 +540,13 @@ function frighten() {
                     nextCell = findNextCell(ghost.direction, ghost.currentCell)
 
                 } else {
-                    console.log("direction before fail: " + ghost.direction)
-                    console.log("ghost: " + ghost.name);
-                    console.log("frightened? " + ghost.frightened);
-
-                    console.log("CELL BEFORE FAIL: " + ghost.currentCell);
                     console.log("FAILED VALIDITY " + nextCell);
                 }
-
-
-
             }, ghost.speed);
+
             arrIntervals.push(ghost.interval);
+
+            // Leave frightened mode and re-enter chase mode after 6 seconds
             timeout = setTimeout(() => {
                 cells[ghost.currentCell].classList.remove("frightened");
                 clearInterval(ghost.interval);
@@ -617,7 +561,7 @@ function frighten() {
             )
         }
     })
-
+    // Restart Chomp Audio when frightened mode is finished
     setTimeout(() => {
         chompAudioInterval = setInterval(() => {
             chompAudio.play();
@@ -630,7 +574,7 @@ function frighten() {
 // Turns ghosts on corners with no choice
 function handleCorners(direction, ghost) {
     let nextCell;
-
+    // Tries one direction, if invalid, picks the other
     if (direction === 1 || direction === 3) {
         direction = 0
         nextCell = findNextCell(direction, ghost.currentCell)
@@ -655,6 +599,7 @@ function handleCorners(direction, ghost) {
 // Calc ghost target cell
 function calcTargetCell(ghost) {
     let targetCell;
+    // Always pacman current cell
     if (ghost === blinky) {
         targetCell = currentPacmanCell;
     }
@@ -671,6 +616,7 @@ function calcTargetCell(ghost) {
 
             targetCell = currentPacmanCell - 3;
         }
+        // If in the same row/column as pacman and < 3 squares, now pacman is current target
         let nearRight = [currentPacmanCell + 1, currentPacmanCell + 2, currentPacmanCell + 3];
         let nearLeft = [currentPacmanCell - 1, currentPacmanCell - 2, currentPacmanCell - 3];
         let nearUp = [currentPacmanCell - rows, currentPacmanCell - (rows * 2), currentPacmanCell - (rows * 3)];
@@ -679,13 +625,12 @@ function calcTargetCell(ghost) {
         if (nearCells.includes(targetCell)) {
             targetCell = currentPacmanCell;
         }
-
-
-
     }
+    // When < 8 distance from pacman, runs away
     if (ghost === clyde) {
+        // calc distance between pacman and clyde
         const pacGn = getGn(nodes[`n${ghost.currentCell}`].connectedNodes, `n${ghost.currentCell}`);
-        if (pacGn < 8) {
+        if (pacGn >= 8) {
             targetCell = currentPacmanCell;
         } else {
             targetCell = clyde.scatterCell;
@@ -705,23 +650,23 @@ function calcTargetCell(ghost) {
     return targetCell;
 }
 
-
+// Next cell calculation on decision squares
 function nextCellComplex(direction, index, bestNode) {
     let nextCell;
-
+    // get index from node name
     if (bestNode[0] === "n") {
         bestNode = bestNode.substring(1)
     }
 
+    // Same column
     if (cells[index].dataset.col === cells[bestNode].dataset.col) {
         if (Number(cells[index].dataset.row) > Number(cells[bestNode].dataset.row)) {
-
             direction = 0;
         } else {
             direction = 2;
         };
     }
-    // same row
+    // same row, handle exceptions for cels that can pass through and come out the other side
     if (cells[index].dataset.row === cells[bestNode].dataset.row) {
         if (Number(cells[index].dataset.col) < Number(cells[bestNode].dataset.col)) {
             if (index === 149) {
@@ -745,93 +690,25 @@ function nextCellComplex(direction, index, bestNode) {
     return [nextCell, direction]
 }
 
+// Rudimentary pathfinder for choosing which node to travel toward on decision squares
+function pathfinder(node, target) {
 
-
-// function pathfinder(node, target) {
-//     const gnVals = {};
-//     let nextNode;
-//     console.log("Start node: " + node)
-//     console.log("Target:" + target)
-//     const connNodes = nodes[node].connectedNodes;
-
-//     console.log("connecting Nodes: ")
-//     console.log(connNodes)
-//     let iteration = 1;
-//     // Iterate through connecting nodes
-//     for (i = 0; i < Object.keys(connNodes).length; i++) {
-//         console.log("iteration:" + iteration)
-//         const nodeName = Object.keys(connNodes)[i];
-//         const nodeIndex = nodes[nodeName].index;
-//         let data = {};
-//         let gN = connNodes[nodeName];
-//         let neighbours = nodes[nodeName].connectedNodes;
-//         console.log(`neighbours of ${nodeName}:`)
-//         console.log(neighbours);
-//         delete neighbours[node];
-//         iteration++
-//         fnVals = {};
-//         for (j = 0; j < Object.keys(neighbours).length; j++) {
-//             let neighbourName = Object.keys(neighbours)[j];
-//             if (neighbourName === node) {
-//                 continue;
-//             }
-
-//             let index = nodes[neighbourName].index;
-//             neighbours[neighbourName] += gN;
-//             let hN = calcHeuristicVal(index, target)
-//             let fN = neighbours[neighbourName] + hN;
-//             console.log(`f(n) for ${neighbourName}: ${fN}`);
-//             fnVals[neighbourName] = fN;
-//             console.log("FNVALS:")
-//             console.log(fnVals)
-//             let bestNode;
-//         }
-
-//         if (Object.keys(fnVals).length === 1) {
-//             bestNode = Object.keys(fnVals)[0]
-//         } else {
-//             let entries = Object.entries(fnVals);
-//             console.log("entries: " + entries[0])
-//             bestNode = entries.reduce((a, b) => a[1] > b[1] ? b[0] : a[0]);
-//         }
-
-//         console.log("!!!!!!!!!! BEST NODE: " + bestNode)
-//         while (bestNode !== `n${target}`) {
-//             console.log("BESTNODE: " + bestNode, "TARGET: " + `n${target}`)
-//             pathfinder(bestNode, target)
-//         }
-//     }
-
-
-// }
-
-
-//setUp()
-// chase(blinky, 1)
-// chase(pinky, 1)
-// pacmanMove(3)
-
-
-
-
-function astar(node, target) {
-    let fnVals = {}; // obj of f(n) values for each node to target 
+    let fnVals = {};
     let gnVals = {};
     let hnVals = {};
+
     const cNodes = new Object(nodes[node].connectedNodes); // object of nodes:distances
-    // console.log("CURRENT NODE BEING EVALUATED: " + node)
+
     let cNodesArray = Object.keys(cNodes)
+    // ignore previous node when considering connected nodes to avoid turning backwards
     if (cNodesArray.includes(prevNode)) {
         let idx = cNodesArray.indexOf(prevNode)
         cNodesArray.splice(idx, 1)
     }
-
-    // console.log(`Possible Nodes: `);
-    // console.log(cNodes)
-
+    // keep track of previous node
     prevNode = String(node);
 
-
+    // Iterate through conncted nodes and calculate f(n) val
     for (i = 0; i < cNodesArray.length; i++) {
         const connNode = cNodesArray[i] // node name
         const index = nodes[connNode].index; // 'i'th node in connected nodes list, get index
@@ -842,49 +719,53 @@ function astar(node, target) {
         hnVals[index] = hN;
         fnVals[index] = fN;
     }
-    // console.log("gnVals:")
-    // console.log(gnVals)
-    // console.log("hnVals:")
-    // console.log(hnVals)
-    // console.log("fnVals:")
-    // console.log(fnVals)
 
-    //assess pacman node
+    // Get cell distance from pacman to ghost
     if (target === currentPacmanCell) {
         let gnPacman = getGn(cNodes, node)
         fnVals[`n${currentPacmanCell}`] = gnPacman;
     }
 
+    // Find lowest f(n) val and choose that node
     let entries = Object.entries(fnVals);
     let lowest = entries.reduce((a, b) => a[1] >= b[1] ? b : a);
-    // console.log(node + " BEST NODE: " + lowest[0])
+
     return lowest[0]; // Node to go towards
 }
 
 
-
+// Calc distance backwards from pacman to ghost to enable ghosts to consider pacman node when choosing a node to travel to
 function getGn(cNodes, ghostNode) {
+    // find closest node to pacman
     const [node, distance] = getClosestNode();
+
     const ghostNodeIndex = nodes[ghostNode].index;
+
     let accumDist = distance;
     let bestNode = node;
+
+    // Recursively calling pathfinder starting from nearest node to pacman until the ghost node is reached, tallying the distances between
     while (!Object.keys(cNodes).includes(ghostNode)) {
-        // cells[currentPacmanCell].style.backgroundColor = "red";
-        // cells[node].style.backgroundColor = "red";
+
         cNodes = nodes[`n${bestNode}`].connectedNodes
-        bestNode = astar(`n${bestNode}`, ghostNodeIndex)
-        // cells[bestNode].style.backgroundColor = "red";
+        bestNode = pathfinder(`n${bestNode}`, ghostNodeIndex)
         accumDist += cNodes[`n${bestNode}`];
     }
     return accumDist;
 }
 
 
-
+// Find closest node to pacman
 function getClosestNode() {
+    // One cell in each direction from current cell
     const adjacentCells = [currentPacmanCell - rows, currentPacmanCell + 1, currentPacmanCell + rows, currentPacmanCell - 1]
-    const validDirections = adjacentCells.map(cell => isValidCell(cell) ? true : false); // up, down, right, left
+
+    // Only consider cells in valid direction
+    const validDirections = adjacentCells.map(cell => isValidCell(cell) ? true : false);
+
     let distances = {}
+
+    // Iterate through each direction until a node is found, keep track of the node and distance to it
     if (validDirections[0]) {
 
         let cell = currentPacmanCell - rows;
@@ -930,6 +811,8 @@ function getClosestNode() {
         const distanceToNode = (currentPacmanCell - cell);
         distances[cell] = distanceToNode;
     }
+
+    // Chose the node with the shortest distance to it
     let entries = Object.entries(distances);
     let closestNodeAndDistance = entries.reduce((a, b) => a[1] > b[1] ? b : a)
     return closestNodeAndDistance
@@ -958,6 +841,7 @@ function calcHeuristicVal(node, target) {
     return Math.sqrt(h2);
 }
 
+// Handle the automation when leaving home, as usually home cells are invalid, can't be entered again once home has been left
 function leaveHome(ghost) {
     if (ghost === pinky) {
         setTimeout(() => {
@@ -1030,6 +914,8 @@ function leaveHome(ghost) {
 
 
 }
+
+// callback function for start button
 function handleStart(e) {
     startAudio.play();
     timeouts.push(setTimeout(() => {
@@ -1040,9 +926,13 @@ function handleStart(e) {
 
     }, 4000))
     arrIntervals.push(chompAudioInterval);
+    // Store starting html for re-establishing start page on reset
     startingHtml = container.innerHTML;
+    // destroy home page to enable game page to be created
     container.innerHTML = "";
+    // create grid and game set up
     setUp()
+    // Create and style score element
     scoreBox = document.createElement('p')
     scoreBox.innerText = `Score: ${score}`;
     scoreBox.style.color = "white";
@@ -1051,11 +941,15 @@ function handleStart(e) {
     scoreBox.style.textShadow = "-1px -1px lightgrey";
     scoreBox.style.margin = "0";
     container.style.flexDirection = "row";
-    body.insertBefore(scoreBox, container)
+    body.insertBefore(scoreBox, container);
+
+    // Automatically begin pacman movement, allow keydown after pacman has begun moving
     timeouts.push(setTimeout(() => {
         pacmanMove(3);
         document.addEventListener('keydown', handleKeyDown);
     }, 4000))
+
+    // Timers for beginning ghost movement
     timeouts.push(setTimeout(() => chase(blinky, blinky.startDirection), 4000));
     timeouts.push(setTimeout(() => {
         leaveHome(pinky)
@@ -1066,41 +960,50 @@ function handleStart(e) {
     timeouts.push(setTimeout(() => {
         leaveHome(clyde);
     }, 12000));
-
-    console.log(startingFood)
 }
 
+// Handler for updating score element text
 function updateScore() {
     scoreBox.innerText = `Score: ${score}`
 }
 
-
+// Handle win
 function levelComplete() {
+    // Toggle win/loss in gameover function
     lost = 0;
+    // Increase speed / difficulty for next level
     ghosts.forEach(ghost => {
         ghost.speed *= 0.95
         if (ghost.speed <= pacmanSpeed) {
             ghost.speed = pacmanSpeed;
         }
     })
-
     gameOver()
 }
+
+// handle game over
 function gameOver() {
-    console.log("Timeouts: " + timeouts);
+    // clear intervals and timeouts and reset variables
     timeouts.forEach(t => {
         clearTimeout(t)
     })
     timeouts = [];
-    console.log("Intervals: " + arrIntervals);
     arrIntervals.forEach(i => {
         clearInterval(i);
 
     })
     arrIntervals = [];
+    ghosts.forEach(ghost => {
+        clearInterval(ghost.interval);
+        ghost.interval = undefined;
+        ghost.frightened = 0;
+    })
+    clearInterval(pacmanInterval)
+    pacmanInterval = undefined;
     clearInterval(chompAudioInterval);
     frightenedAudio.pause();
-
+    document.removeEventListener("keydown", handleKeyDown)
+    // create text on end game screen
     const pGameOver = document.createElement('p');
     const p = document.createElement('p');
     restartButton = document.createElement('button');
@@ -1119,18 +1022,12 @@ function gameOver() {
         winAudio.play();
     }
 
-    ghosts.forEach(ghost => {
-        clearInterval(ghost.interval);
-        ghost.interval = undefined;
-        ghost.frightened = 0;
-    })
-    clearInterval(pacmanInterval)
-    pacmanInterval = undefined;
-    document.removeEventListener("keydown", handleKeyDown)
+    // Destroy grid and game for game over screen
     container.innerHTML = ""
     if (scoreBox) {
         body.removeChild(scoreBox);
     }
+    // restyle container to game over screen
     container.style.backgroundColor = "black";
     pGameOver.style.color = "yellow";
     pGameOver.style.fontSize = "1.5rem";
@@ -1147,7 +1044,7 @@ function gameOver() {
     p.style.textShadow = "-1px -1px lightgrey";
     p.style.margin = "2rem auto";
     p.style.height = "100px"
-    container.append(p)
+    container.append(p);
 
     let pHighScore = document.createElement('p');
     pHighScore.style.color = "white";
@@ -1155,9 +1052,10 @@ function gameOver() {
     pHighScore.style.fontFamily = "Arcade-R";
     pHighScore.style.textShadow = "-1px -1px lightgrey";
     pHighScore.style.margin = "2rem auto";
-    pHighScore.style.height = "100px"
+    pHighScore.style.height = "100px";
+
+    // Keep track of highscore
     let highScore = localStorage.getItem("highScore");
-    console.log("highscore: " + highScore);
     if (highScore) {
         if (score < Number(highScore)) {
             pHighScore.innerText = `High Score: ${highScore}`;
@@ -1172,25 +1070,26 @@ function gameOver() {
 
     }
 
-    container.append(pHighScore)
+    container.append(pHighScore);
 
-    container.style.flexDirection = "column"
+    container.style.flexDirection = "column";
     restartButton.classList.add('restart-button');
 
     container.append(restartButton);
-    restartButton.addEventListener("click", restart)
-
-
-
+    restartButton.addEventListener("click", restart);
 
 }
 
 
+// Add restart game functionality after win or lose
 function restart() {
+    // Reestablish home screen
     container.innerHTML = startingHtml;
-    startButton = document.querySelector(".start-button")
-    startButton.addEventListener("click", handleStart)
+    startButton = document.querySelector(".start-button");
+    startButton.addEventListener("click", handleStart);
     container.style.flexDirection = "column";
+
+    // Reset variables
     cells = [];
     currentPacmanCell = startingCell;
     ghosts.forEach(ghost => {
