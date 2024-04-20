@@ -8,17 +8,6 @@ Deployment link
 
 https://kanelawless.github.io/PacMan-Project-One/
 
-Getting Started/Code Installation
-
-Instructions
-
-Explain how the reader accesses your code. Include a step by step approach.
-
-Insert your Getting Started/Code Installation here:
-
-
-
-
 
 Timeframe & Working Team (Solo/Pair/Group)
 
